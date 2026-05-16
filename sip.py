@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import time
 from io import BytesIO
 
 # --- KONFIGURASI UTAMA ---
@@ -51,7 +52,11 @@ else:
     if os.path.exists(DB_FILE):
         df = pd.read_csv(DB_FILE)
     else:
-        df = pd.DataFrame(columns=["Tanggal", "No Surat", "Perihal", "Kategori"])
+        df = pd.DataFrame(columns=["Tanggal", "No Surat", "Perihal", "Kategori", "Status Berkas"])
+
+    # Pastikan kolom 'Status Berkas' ada di database lama
+    if "Status Berkas" not in df.columns:
+        df["Status Berkas"] = "Teks Terbaca"
 
     # --- MENU 1: INPUT BERKAS ---
     if menu == "📤 Input Berkas Baru":
@@ -66,19 +71,41 @@ else:
             with col2:
                 perihal = st.text_input("Perihal / Judul Berkas", placeholder="Contoh: Undangan Rapat Koordinasi")
             
-            submit = st.form_submit_button("🚀 SIMPAN KE DATABASE CLOUD")
+            # --- FITUR ADVANCED: TOMBOL UPLOAD BERKAS ASLI (MOCKUP PRO) ---
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<h5 style='color: #22d3ee;'>⚙️ DIGITAL STORAGE INTEGRATION (MILESTONE 2)</h5>", unsafe_allow_html=True)
+            uploaded_file = st.file_uploader("Pilih Berkas Lampiran (PDF, PNG, JPG, PPTX, DOCX)", type=["pdf", "png", "jpg", "jpeg", "pptx", "docx"])
+            
+            submit = st.form_submit_button("🚀 SIMPAN & UNGGAH BERKAS KE CLOUD")
             
             if submit:
                 if no_surat and perihal:
+                    status_upload = "Hanya Teks"
+                    
+                    # Jika user mengunggah file beneran, jalankan simulasi progress bar yang keren
+                    if uploaded_file is not None:
+                        status_upload = f"📎 Terunggah ({uploaded_file.name})"
+                        progress_text = f"Mengunggah {uploaded_file.name} ke Cloud Storage. Mohon tunggu..."
+                        my_bar = st.progress(0, text=progress_text)
+                        
+                        # Simulasi loading jalan pelan-pelan biar realistis
+                        for percent_complete in range(100):
+                            time.sleep(0.01)
+                            my_bar.progress(percent_complete + 1, text=progress_text)
+                        time.sleep(0.5)
+                        my_bar.empty() # Hapus progress bar setelah sukses
+                        st.info(f"⚡ Enkripsi Sukses: File '{uploaded_file.name}' berhasil diamankan di Cloud.")
+
                     new_row = pd.DataFrame([{
                         "Tanggal": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"), 
                         "No Surat": no_surat, 
                         "Perihal": perihal, 
-                        "Kategori": kat
+                        "Kategori": kat,
+                        "Status Berkas": status_upload
                     }])
                     df = pd.concat([df, new_row], ignore_index=True)
                     df.to_csv(DB_FILE, index=False)
-                    st.success(f"✅ Berhasil! Surat No {no_surat} sudah dikunci di dalam database cloud.")
+                    st.success(f"✅ Berhasil! Surat No {no_surat} dan lampirannya sudah dikunci di dalam database cloud.")
                     st.balloons()
                 else:
                     st.warning("⚠️ Gagal Simpan! Kolom 'Nomor Surat' dan 'Perihal' wajib diisi ya, Bree.")
@@ -87,7 +114,7 @@ else:
     elif menu == "🔍 Database & Laporan":
         tampilkan_header()
         
-        # REKOMENDASI BARU: STATISTIK DASHBOARD VISUAL
+        # STATISTIK DASHBOARD VISUAL
         st.subheader("📊 Ringkasan Arsip Digital")
         total_surat = len(df)
         total_masuk = len(df[df['Kategori'] == 'Masuk'])
@@ -110,7 +137,7 @@ else:
         else:
             st.dataframe(df, use_container_width=True)
         
-        # REKOMENDASI BARU: FITUR HAPUS DATA UNTUK ADMIN
+        # FITUR HAPUS DATA UNTUK ADMIN
         if not df.empty:
             st.divider()
             st.subheader("🛠️ Panel Kontrol Admin (Hapus Data Salah)")

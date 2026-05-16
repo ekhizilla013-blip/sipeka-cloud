@@ -1,7 +1,11 @@
 import streamlit as st
+import pandas as pd
+import os
 
 # --- KONFIGURASI ---
 st.set_page_config(page_title="SIPEKA CLOUD PRO", page_icon="☁️", layout="wide")
+
+DB_FILE = "database_arsip.csv"
 
 # --- LOGIN ---
 if 'logged' not in st.session_state: st.session_state.logged = False
@@ -16,22 +20,43 @@ if not st.session_state.logged:
                 st.rerun()
             else: st.error("Akses Ditolak")
 else:
-    st.sidebar.success("✅ Sistem Terintegrasi")
-    menu = st.sidebar.radio("NAVIGASI", ["📤 Input Berkas", "🔍 Lihat Database"])
+    st.sidebar.success("✅ Mode Cloud Aktif")
+    menu = st.sidebar.radio("NAVIGASI", ["📤 Input Berkas", "🔍 Database & Laporan"])
+
+    # Load Data
+    if os.path.exists(DB_FILE):
+        df = pd.read_csv(DB_FILE)
+    else:
+        df = pd.DataFrame(columns=["Tanggal", "Nama Berkas", "Kategori"])
 
     if menu == "📤 Input Berkas":
         st.title("📤 Input Berkas Baru")
-        st.write("Silakan isi formulir di bawah ini. Data akan langsung tersimpan di Google Sheets.")
-        
-        # GANTI LINK DI BAWAH INI DENGAN LINK 'KIRIM' GOOGLE FORM KAMU
-        url_form = "MASUKKAN_LINK_GOOGLE_FORM_KAMU_DISINI"
-        
-        # Menampilkan Google Form di dalam Streamlit
-        st.components.v1.iframe(url_form, height=800, scrolling=True)
+        with st.form("input_manual", clear_on_submit=True):
+            nama = st.text_input("Judul/Nama Berkas")
+            kat = st.selectbox("Kategori", ["Masuk", "Keluar", "SK", "Laporan"])
+            submit = st.form_submit_button("SIMPAN DATA")
+            
+            if submit:
+                if nama:
+                    new_row = pd.DataFrame([{"Tanggal": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"), "Nama Berkas": nama, "Kategori": kat}])
+                    df = pd.concat([df, new_row], ignore_index=True)
+                    df.to_csv(DB_FILE, index=False)
+                    st.success(f"✅ Mantap Bree! '{nama}' sudah masuk database.")
+                    st.balloons()
+                else:
+                    st.warning("Nama berkas kosong, Bree.")
 
-    elif menu == "🔍 Lihat Database":
-        st.title("🔍 Database Google Sheets")
-        # GANTI LINK DI BAWAH INI DENGAN LINK GOOGLE SHEETS KAMU
-        url_sheet = "https://docs.google.com/spreadsheets/d/1nA5z4QXkMTRFuDGkhw7pjYtrAtz8K_rllRTj2nC86m8/edit?usp=sharing"
-        st.markdown(f"### 🔗 [KLIK DISINI UNTUK LIHAT DATA DI GOOGLE SHEETS]({url_sheet})")
-        st.info("Gunakan link di atas untuk melihat rekapan data yang sudah masuk.")
+    elif menu == "🔍 Database & Laporan":
+        st.title("🔍 Monitoring Database")
+        st.dataframe(df, use_container_width=True)
+        
+        st.divider()
+        st.subheader("📥 Download Data untuk Laporan")
+        csv = df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="DOWNLOAD EXCEL (CSV)",
+            data=csv,
+            file_name='rekap_sipeka_cloud.csv',
+            mime='text/csv',
+        )
+        st.info("Klik tombol di atas untuk memindahkan data dari Cloud ke laptop kamu dalam bentuk Excel.")

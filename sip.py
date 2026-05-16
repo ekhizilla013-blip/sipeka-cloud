@@ -42,11 +42,10 @@ else:
         "📝 Ruang Catatan/Memo"
     ])
     
-    # --- TOMBOL LOGOUT (YANG BARU DI SINI) ---
-    st.sidebar.divider() # Garis pembatas santai
+    st.sidebar.divider() 
     if st.sidebar.button("🔒 LOGOUT / KELUAR SISTEM"):
-        st.session_state.logged = False # Hapus status login
-        st.rerun() # Refresh aplikasi balik ke halaman login
+        st.session_state.logged = False 
+        st.rerun() 
 
     # --- LOAD DATABASE ---
     if os.path.exists(DB_FILE):
@@ -87,8 +86,22 @@ else:
     # --- MENU 2: DATABASE & LAPORAN ---
     elif menu == "🔍 Database & Laporan":
         tampilkan_header()
-        st.subheader("🔍 Monitoring Kendali Arsip")
         
+        # REKOMENDASI BARU: STATISTIK DASHBOARD VISUAL
+        st.subheader("📊 Ringkasan Arsip Digital")
+        total_surat = len(df)
+        total_masuk = len(df[df['Kategori'] == 'Masuk'])
+        total_keluar = len(df[df['Kategori'] == 'Keluar'])
+        total_sk = len(df[df['Kategori'] == 'SK'])
+        
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("📂 Total Arsip", f"{total_surat} Berkas")
+        m2.metric("📥 Surat Masuk", f"{total_masuk} Berkas")
+        m3.metric("📤 Surat Keluar", f"{total_keluar} Berkas")
+        m4.metric("📜 Total SK", f"{total_sk} Berkas")
+        st.divider()
+        
+        st.subheader("🔍 Monitoring Kendali Arsip")
         search_query = st.text_input("🔍 Cari Surat Cepat (Ketik No Surat atau Perihal)...")
         if search_query:
             filtered_df = df[df['No Surat'].astype(str).str.contains(search_query, case=False) | 
@@ -97,6 +110,20 @@ else:
         else:
             st.dataframe(df, use_container_width=True)
         
+        # REKOMENDASI BARU: FITUR HAPUS DATA UNTUK ADMIN
+        if not df.empty:
+            st.divider()
+            st.subheader("🛠️ Panel Kontrol Admin (Hapus Data Salah)")
+            with st.expander("❌ Klik di sini untuk menghapus data yang salah input"):
+                pilihan_hapus = st.selectbox("Pilih No Surat yang akan dihapus:", df['No Surat'].tolist())
+                tombol_hapus = st.button("🗑️ HAPUS PERMANEN DARI CLOUD")
+                
+                if tombol_hapus:
+                    df = df[df['No Surat'] != pilihan_hapus]
+                    df.to_csv(DB_FILE, index=False)
+                    st.error(f"🗑️ Sukses! Surat No '{pilihan_hapus}' telah dihapus dari database cloud.")
+                    st.rerun()
+
         st.divider()
         st.subheader("📥 Penarikan Laporan Excel")
         

@@ -1,16 +1,34 @@
 import streamlit as st
 import pandas as pd
 import os
-import time
+import dropbox
 from io import BytesIO
 
 # --- KONFIGURASI UTAMA ---
 st.set_page_config(page_title="SIPEKA CLOUD ULTIMATE", page_icon="☁️", layout="wide")
 
+# 🔑 MASUKKAN TOKEN DROPBOX KAMU DI SINI:
+DROPBOX_TOKEN = "sl.u.AGe5suTkhJtnR3ighqaRioChpqlcysLe1BEt9_35C4cFeV-5BtB12gAddpWU7J_arPLibtL-sgnEk_JgbFml3Wt9PQaRq___ZEZ8hzpVvgWrC1HAJAtKd39dYXQFs9mP9d0_s4Bxl66-GEEe1_ln3TNIiPqCVaBclwEcQ-zIpk_MYvyyOIgxShP1m7H8hlttskZhgB99Hh5SRhyzdkBal14K4uRkMtv1ErbmJXPjAJPMz6NTe1aB42qGOCKYqsk_a7CeJjJr69Gtv4Y7UbYSMg36745N4rTCpm5HY_sZq9Cre5mFnApbZd_eGNPdP_27ozg51Yn1yzegEP7qVUD_TZd0aKOR9pxxjOyEaCDbSMK-I9uMf4N-WQZ4Papf59ab9cnmBETp80iAmxIdGiNicogFlpKsYKVHB-H-KJNCfyUe2U2eFA-t_Cf3V4Xh750PVL0OZ8Z0lW3HivyjZl4BluJl4i67cUPTeKla-XYnTq78c5PMpQ18KO85pQL_EDfCjgHwL-AGQoJ-NayKA4vMeJpZukvPSXIIOhdE5jAnwXyMvNRF0io5bFPcvC-I0llzdiffuruvJY614Y5Uxq4hTIT3hzmK9DHf7fhPHjodNWwAy4gS-_CNkhoR_OTX_X800hupSHVGtPT62192Do0PH2WvWbnK-Q94D_Ky3d6VrHMXlN7lQjL_tqjuPHYBNPG2PZYtlpFGiQhqlv0hWjPFeYffSrP84mxCa9kf_biCTu5DXwgHyuMXfisyoSxhMBKv4bXFahB8Rv4y6jrMwpyY1qP002fQn6FK9gAHRnuW26nxgkTdRI8lKQr0j4TA0P2X5qUkQ61c3vDQwgPbv7GHkGhryHnm9TdNpsjsdVHG3j31Q9rWT47180hFUXnO6zfN3lyNWoXf5hxj9U2o14bNcysN55n7ocSAnX00elusVhXI-FZE6rwRenSyvc_mWOsu5F39GKP25yTQnwRjXGwuLra2x5tW50sae59bpTTX06AhkbqJAymA7qb8uD4TO8hUApA6aVNZ_vmRcbC4z0nbQ0efcRkSIuM_uFCMQVcYzg7zdFOFEnBiCKWD8O0_ItbOUXm_vrjzeE4oNilGElIjMbFleTNP1Dnn6WIANrxKnhWg04ChkrU7oLMkGl3agvGhuvdVD-tVYqvzg1yPqalELaNOGsGTNjxIOF8dEcL3YDHhr6f8IlJq9UewYQNJ2a_eZa3OHUoE1sIDwiH8IzFOxYIyaJ7yLiiAOxoTwJ8MyyElE7Qb-2D_9qjSmj6UzAoFTLud5Hn-1T3FWDYBbpvoqwNux3hlWkLVZTfZfBDiWoCsm1orrZHuFNRW5Rjrv32ctU2xOFJK1V3hA6SUOGVRXHY-xSdSsy1SmnqeJturefRzgXIQYMvpAKDWBPUuAO1En7CICSqdXiHdI5qfRuLxl-iH"
+
 DB_FILE = "database_arsip.csv"
 MEMO_FILE = "memo_internal.txt"
 
-# --- 1. MAKEOVER: LOGO & STYLE ---
+# Fungsi Hubungkan ke Dropbox
+def upload_ke_dropbox(file_data, file_name):
+    try:
+        dbx = dropbox.Dropbox(DROPBOX_TOKEN)
+        path = f"/{file_name}"
+        # Upload file fisik
+        dbx.files_upload(file_data, path, mode=dropbox.files.WriteMode.overwrite)
+        # Bikin link publik yang bisa diklik semua orang
+        setting = dropbox.sharing.CreateSharedLinkWithSettingsArg(path=path)
+        link = dbx.sharing.create_shared_link_with_settings(path, setting)
+        # Ubah link dropbox biar langsung bisa dibuka di browser (ganti dl=0 jadi raw=1)
+        return link.url.replace("?dl=0", "?raw=1")
+    except Exception as e:
+        st.error(f"Gagal Upload ke Dropbox: {e}")
+        return "Gagal Upload"
+
 def tampilkan_header():
     st.markdown("""
         <div style='text-align: center; padding-bottom: 20px;'>
@@ -52,11 +70,10 @@ else:
     if os.path.exists(DB_FILE):
         df = pd.read_csv(DB_FILE)
     else:
-        df = pd.DataFrame(columns=["Tanggal", "No Surat", "Perihal", "Kategori", "Status Berkas"])
+        df = pd.DataFrame(columns=["Tanggal", "No Surat", "Perihal", "Kategori", "Link Berkas"])
 
-    # Pastikan kolom 'Status Berkas' ada di database lama
-    if "Status Berkas" not in df.columns:
-        df["Status Berkas"] = "Teks Terbaca"
+    if "Link Berkas" not in df.columns:
+        df["Link Berkas"] = "Tidak Ada File"
 
     # --- MENU 1: INPUT BERKAS ---
     if menu == "📤 Input Berkas Baru":
@@ -71,41 +88,33 @@ else:
             with col2:
                 perihal = st.text_input("Perihal / Judul Berkas", placeholder="Contoh: Undangan Rapat Koordinasi")
             
-            # --- FITUR ADVANCED: TOMBOL UPLOAD BERKAS ASLI (MOCKUP PRO) ---
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("<h5 style='color: #22d3ee;'>⚙️ DIGITAL STORAGE INTEGRATION (MILESTONE 2)</h5>", unsafe_allow_html=True)
-            uploaded_file = st.file_uploader("Pilih Berkas Lampiran (PDF, PNG, JPG, PPTX, DOCX)", type=["pdf", "png", "jpg", "jpeg", "pptx", "docx"])
+            st.markdown("<h5 style='color: #22d3ee;'>⚙️ REAL CLOUD STORAGE INTEGRATION</h5>", unsafe_allow_html=True)
+            uploaded_file = st.file_uploader("Pilih Berkas Lampiran (PDF, PNG, JPG, PPTX)", type=["pdf", "png", "jpg", "jpeg", "pptx", "docx"])
             
             submit = st.form_submit_button("🚀 SIMPAN & UNGGAH BERKAS KE CLOUD")
             
             if submit:
                 if no_surat and perihal:
-                    status_upload = "Hanya Teks"
+                    link_final = "Tidak Ada File"
                     
-                    # Jika user mengunggah file beneran, jalankan simulasi progress bar yang keren
                     if uploaded_file is not None:
-                        status_upload = f"📎 Terunggah ({uploaded_file.name})"
-                        progress_text = f"Mengunggah {uploaded_file.name} ke Cloud Storage. Mohon tunggu..."
-                        my_bar = st.progress(0, text=progress_text)
-                        
-                        # Simulasi loading jalan pelan-pelan biar realistis
-                        for percent_complete in range(100):
-                            time.sleep(0.01)
-                            my_bar.progress(percent_complete + 1, text=progress_text)
-                        time.sleep(0.5)
-                        my_bar.empty() # Hapus progress bar setelah sukses
-                        st.info(f"⚡ Enkripsi Sukses: File '{uploaded_file.name}' berhasil diamankan di Cloud.")
-
+                        with st.spinner(f"Sedang mengirim {uploaded_file.name} ke Cloud Storage..."):
+                            # Baca data file beneran
+                            file_bytes = uploaded_file.read()
+                            # Jalankan fungsi upload ke dropbox
+                            link_final = upload_ke_dropbox(file_bytes, uploaded_file.name)
+                    
                     new_row = pd.DataFrame([{
                         "Tanggal": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"), 
                         "No Surat": no_surat, 
                         "Perihal": perihal, 
                         "Kategori": kat,
-                        "Status Berkas": status_upload
+                        "Link Berkas": link_final
                     }])
                     df = pd.concat([df, new_row], ignore_index=True)
                     df.to_csv(DB_FILE, index=False)
-                    st.success(f"✅ Berhasil! Surat No {no_surat} dan lampirannya sudah dikunci di dalam database cloud.")
+                    st.success(f"✅ Sukses Total! Data & Berkas Fisik Berhasil Dikunci di Cloud.")
                     st.balloons()
                 else:
                     st.warning("⚠️ Gagal Simpan! Kolom 'Nomor Surat' dan 'Perihal' wajib diisi ya, Bree.")
@@ -129,13 +138,29 @@ else:
         st.divider()
         
         st.subheader("🔍 Monitoring Kendali Arsip")
-        search_query = st.text_input("🔍 Cari Surat Cepat (Ketik No Surat atau Perihal)...")
+        search_query = st.text_input("🔍 Cari Surat Cepat...")
+        
+        # Trik memunculkan Link Biru Aktif yang bisa diklik di tabel Streamlit
+        df_display = df.copy()
+        
         if search_query:
-            filtered_df = df[df['No Surat'].astype(str).str.contains(search_query, case=False) | 
-                             df['Perihal'].astype(str).str.contains(search_query, case=False)]
-            st.dataframe(filtered_df, use_container_width=True)
-        else:
-            st.dataframe(df, use_container_width=True)
+            df_display = df_display[df_display['No Surat'].astype(str).str.contains(search_query, case=False) | 
+                                    df_display['Perihal'].astype(str).str.contains(search_query, case=False)]
+        
+        # Menampilkan tabel dengan link aktif khusus di Streamlit
+        st.data_editor(
+            df_display,
+            column_config={
+                "Link Berkas": st.column_config.LinkColumn(
+                    "Link Berkas",
+                    help="Klik link untuk membuka atau download dokumen fisik",
+                    validate="^http://",
+                    max_chars=1000,
+                )
+            },
+            disabled=True,
+            use_container_width=True
+        )
         
         # FITUR HAPUS DATA UNTUK ADMIN
         if not df.empty:
@@ -148,7 +173,7 @@ else:
                 if tombol_hapus:
                     df = df[df['No Surat'] != pilihan_hapus]
                     df.to_csv(DB_FILE, index=False)
-                    st.error(f"🗑️ Sukses! Surat No '{pilihan_hapus}' telah dihapus dari database cloud.")
+                    st.error(f"🗑️ Sukses! Surat No '{pilihan_hapus}' telah dihapus.")
                     st.rerun()
 
         st.divider()
@@ -169,14 +194,11 @@ else:
                 file_name='LAPORAN_SIPEKA_ULTIMATE.xlsx',
                 mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
-        else:
-            st.info("Database masih kosong. Belum ada data untuk di-download.")
 
     # --- MENU 3: RUANG CATATAN / MEMO INTERNAL ---
     elif menu == "📝 Ruang Catatan/Memo":
         tampilkan_header()
         st.subheader("📝 Memo & Catatan Internal Staf")
-        st.info("Ruang santai buat ninggalin catatan atau memo penting antar staf yang jaga shift.")
         
         if os.path.exists(MEMO_FILE):
             with open(MEMO_FILE, "r") as f:
@@ -187,15 +209,13 @@ else:
         st.text_area("🗒️ Catatan Saat Ini:", value=memo_lama, height=200, disabled=True)
         
         with st.form("form_memo", clear_on_submit=True):
-            isi_memo = st.text_input("Ketik catatan baru di sini...", placeholder="Contoh: Surat dari Dinas Perhubungan sudah ditindaklanjuti.")
+            isi_memo = st.text_input("Ketik catatan baru di sini...")
             simpan_memo = st.form_submit_button("✍️ Tambahkan ke Catatan")
             
             if simpan_memo and isi_memo:
                 waktu = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M")
                 format_baru = f"[{waktu}] Staf: {isi_memo}\n"
-                
                 with open(MEMO_FILE, "a") as f:
                     f.write(format_baru)
-                    
                 st.success("📝 Catatan berhasil ditambahkan!")
                 st.rerun()

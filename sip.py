@@ -1,11 +1,7 @@
 import streamlit as st
-import pandas as pd
 
 # --- KONFIGURASI ---
 st.set_page_config(page_title="SIPEKA CLOUD PRO", page_icon="☁️", layout="wide")
-
-# Link Google Sheets kamu
-URL_SHEET = "https://docs.google.com/spreadsheets/d/1nA5z4QXkMTRFuDGkhw7pjYtrAtz8K_rllRTj2nC86m8/edit?usp=sharing"
 
 # --- LOGIN ---
 if 'logged' not in st.session_state: st.session_state.logged = False
@@ -20,28 +16,22 @@ if not st.session_state.logged:
                 st.rerun()
             else: st.error("Akses Ditolak")
 else:
-    st.sidebar.success("✅ Sistem Online")
-    menu = st.sidebar.radio("NAVIGASI", ["📤 Upload Berkas", "🔍 Database"])
+    st.sidebar.success("✅ Sistem Terintegrasi")
+    menu = st.sidebar.radio("NAVIGASI", ["📤 Input Berkas", "🔍 Lihat Database"])
 
-    if menu == "📤 Upload Berkas":
+    if menu == "📤 Input Berkas":
         st.title("📤 Input Berkas Baru")
-        st.info("Setiap berkas yang disimpan akan tercatat di Google Sheets.")
+        st.write("Silakan isi formulir di bawah ini. Data akan langsung tersimpan di Google Sheets.")
         
-        with st.form("input_form", clear_on_submit=True):
-            nama = st.text_input("Judul/Nama Berkas")
-            kat = st.selectbox("Kategori", ["Masuk", "Keluar", "SK", "Laporan"])
-            submit = st.form_submit_button("SIMPAN KE BRANKAS")
-            
-            if submit:
-                if nama:
-                    # Tampilkan link konfirmasi untuk sementara (Cara paling aman tanpa error)
-                    st.success(f"✅ Data '{nama}' Siap Dikirim!")
-                    st.balloons()
-                    st.markdown(f"### ➡️ [KLIK DISINI UNTUK KONFIRMASI SIMPAN](https://docs.google.com/spreadsheets/d/1nA5z4QXkMTRFuDGkhw7pjYtrAtz8K_rllRTj2nC86m8/edit)")
-                else:
-                    st.warning("Isi nama berkas dulu ya.")
+        # GANTI LINK DI BAWAH INI DENGAN LINK 'KIRIM' GOOGLE FORM KAMU
+        url_form = "MASUKKAN_LINK_GOOGLE_FORM_KAMU_DISINI"
+        
+        # Menampilkan Google Form di dalam Streamlit
+        st.components.v1.iframe(url_form, height=800, scrolling=True)
 
-    elif menu == "🔍 Database":
+    elif menu == "🔍 Lihat Database":
         st.title("🔍 Database Google Sheets")
-        st.write("Semua data tersimpan aman di Google Drive kamu.")
-        st.markdown(f"### 🔗 [Buka Tabel Database Kamu]({URL_SHEET})")
+        # GANTI LINK DI BAWAH INI DENGAN LINK GOOGLE SHEETS KAMU
+        url_sheet = "https://docs.google.com/spreadsheets/d/1nA5z4QXkMTRFuDGkhw7pjYtrAtz8K_rllRTj2nC86m8/edit?usp=sharing"
+        st.markdown(f"### 🔗 [KLIK DISINI UNTUK LIHAT DATA DI GOOGLE SHEETS]({url_sheet})")
+        st.info("Gunakan link di atas untuk melihat rekapan data yang sudah masuk.")

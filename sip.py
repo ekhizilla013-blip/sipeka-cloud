@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+from io import BytesIO
 
 # --- KONFIGURASI ---
 st.set_page_config(page_title="SIPEKA CLOUD PRO", page_icon="☁️", layout="wide")
@@ -51,12 +52,23 @@ else:
         st.dataframe(df, use_container_width=True)
         
         st.divider()
-        st.subheader("📥 Download Data untuk Laporan")
-        csv = df.to_csv(index=False).encode('utf-8')
+        st.subheader("📥 Download Laporan Resmi")
+        
+        # FUNGSI EXCEL DOWNLOAD
+        def to_excel(df):
+            output = BytesIO()
+            writer = pd.ExcelWriter(output, engine='xlsxwriter')
+            df.to_excel(writer, index=False, sheet_name='Data_Sipeka')
+            writer.close()
+            processed_data = output.getvalue()
+            return processed_data
+
+        excel_data = to_excel(df)
+        
         st.download_button(
-            label="DOWNLOAD EXCEL (CSV)",
-            data=csv,
-            file_name='rekap_sipeka_cloud.csv',
-            mime='text/csv',
+            label="📊 DOWNLOAD LAPORAN EXCEL (.xlsx)",
+            data=excel_data,
+            file_name='Laporan_SIPEKA_Digital.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
-        st.info("Klik tombol di atas untuk memindahkan data dari Cloud ke laptop kamu dalam bentuk Excel.")
+        st.info("File ini bisa langsung dibuka di Microsoft Excel (Mac atau Windows).")

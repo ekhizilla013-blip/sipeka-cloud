@@ -10,7 +10,6 @@ DB_FILE = "database_arsip.csv"
 MEMO_FILE = "memo_internal.txt"
 
 # --- 1. MAKEOVER: LOGO & STYLE ---
-# Kita pakai link gambar logo garuda/kominfosan universal atau teks estetik digital
 def tampilkan_header():
     st.markdown("""
         <div style='text-align: center; padding-bottom: 20px;'>
@@ -22,6 +21,7 @@ def tampilkan_header():
 
 # --- LOGIN SYSTEM ---
 if 'logged' not in st.session_state: st.session_state.logged = False
+
 if not st.session_state.logged:
     tampilkan_header()
     st.markdown("<h3 style='text-align: center;'>🔐 KUNCI AKSES SISTEM</h3>", unsafe_allow_html=True)
@@ -34,18 +34,24 @@ if not st.session_state.logged:
                 st.rerun()
             else: st.error("Akses Ditolak! Periksa kembali Username & Password.")
 else:
+    # --- SIDEBAR MENU ---
     st.sidebar.success("⚡ SIPEKA ONLINE (MODE PRO)")
     menu = st.sidebar.radio("NAVIGASI UTAMA", [
         "📤 Input Berkas Baru", 
         "🔍 Database & Laporan",
         "📝 Ruang Catatan/Memo"
     ])
+    
+    # --- TOMBOL LOGOUT (YANG BARU DI SINI) ---
+    st.sidebar.divider() # Garis pembatas santai
+    if st.sidebar.button("🔒 LOGOUT / KELUAR SISTEM"):
+        st.session_state.logged = False # Hapus status login
+        st.rerun() # Refresh aplikasi balik ke halaman login
 
     # --- LOAD DATABASE ---
     if os.path.exists(DB_FILE):
         df = pd.read_csv(DB_FILE)
     else:
-        # 2. TAMBAH KOLOM BARU: Tambah No Surat & Perihal
         df = pd.DataFrame(columns=["Tanggal", "No Surat", "Perihal", "Kategori"])
 
     # --- MENU 1: INPUT BERKAS ---
@@ -83,7 +89,6 @@ else:
         tampilkan_header()
         st.subheader("🔍 Monitoring Kendali Arsip")
         
-        # Fitur Pencarian Kilat
         search_query = st.text_input("🔍 Cari Surat Cepat (Ketik No Surat atau Perihal)...")
         if search_query:
             filtered_df = df[df['No Surat'].astype(str).str.contains(search_query, case=False) | 
@@ -95,7 +100,6 @@ else:
         st.divider()
         st.subheader("📥 Penarikan Laporan Excel")
         
-        # Engine Excel
         def to_excel(data_frame):
             output = BytesIO()
             writer = pd.ExcelWriter(output, engine='xlsxwriter')
@@ -120,7 +124,6 @@ else:
         st.subheader("📝 Memo & Catatan Internal Staf")
         st.info("Ruang santai buat ninggalin catatan atau memo penting antar staf yang jaga shift.")
         
-        # Load memo lama jika ada
         if os.path.exists(MEMO_FILE):
             with open(MEMO_FILE, "r") as f:
                 memo_lama = f.read()
@@ -129,7 +132,6 @@ else:
             
         st.text_area("🗒️ Catatan Saat Ini:", value=memo_lama, height=200, disabled=True)
         
-        # Form tambah memo baru
         with st.form("form_memo", clear_on_submit=True):
             isi_memo = st.text_input("Ketik catatan baru di sini...", placeholder="Contoh: Surat dari Dinas Perhubungan sudah ditindaklanjuti.")
             simpan_memo = st.form_submit_button("✍️ Tambahkan ke Catatan")

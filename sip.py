@@ -1,25 +1,15 @@
 import streamlit as st
+from streamlit_gsheets import GSheetsConnection
 import pandas as pd
-import os
-from PIL import Image
-from io import BytesIO
 
 # --- KONFIGURASI ---
 st.set_page_config(page_title="SIPEKA CLOUD PRO", page_icon="☁️", layout="wide")
 
-# Folder penyimpanan di Server Cloud (Internal Streamlit)
-SAVE_FOLDER = "berkas_sipeka"
-if not os.path.exists(SAVE_FOLDER):
-    os.makedirs(SAVE_FOLDER)
+# GANTI INI DENGAN LINK GOOGLE SHEETS KAMU
+URL_SHEET = "https://docs.google.com/spreadsheets/d/1nA5z4QXkMTRFuDGkhw7pjYtrAtz8K_rllRTj2nC86m8/edit?usp=sharing"
 
-DB_FILE = os.path.join(SAVE_FOLDER, "database_sipeka.csv")
-
-def compress_image(uploaded_file):
-    image = Image.open(uploaded_file)
-    if image.mode in ("RGBA", "P"): image = image.convert("RGB")
-    img_io = BytesIO()
-    image.save(img_io, format="JPEG", quality=50, optimize=True)
-    return img_io
+# Koneksi ke Google Sheets
+conn = st.connection("gsheets", type=GSheetsConnection)
 
 # --- LOGIN ---
 if 'logged' not in st.session_state: st.session_state.logged = False
@@ -34,51 +24,44 @@ if not st.session_state.logged:
                 st.rerun()
             else: st.error("Akses Ditolak")
 else:
-    st.sidebar.success("✅ Cloud Storage Aktif")
+    st.sidebar.success("✅ Terhubung ke Brankas Google")
     menu = st.sidebar.radio("NAVIGASI", ["📊 Statistik", "📤 Upload Berkas", "🔍 Database"])
-    
-    # Load Database
-    if os.path.exists(DB_FILE):
-        df = pd.read_csv(DB_FILE)
-    else:
-        df = pd.DataFrame(columns=["Tanggal", "Nama", "Kategori", "File"])
 
     if menu == "📊 Statistik":
         st.title("📊 Monitoring Digital")
-        st.metric("Total Berkas Terarsip", len(df))
-        if not df.empty:
-            st.bar_chart(df['Kategori'].value_counts())
+        data = conn.read(spreadsheet=URL_SHEET)
+        st.metric("Total Berkas Terdaftar", len(data))
+        if not data.empty:
+            st.bar_chart(data['kategori'].value_counts())
 
     elif menu == "📤 Upload Berkas":
         st.title("📤 Input Berkas Baru")
-        with st.form("up"):
+        with st.form("input_form"):
             nama = st.text_input("Judul/Nama Berkas")
             kat = st.selectbox("Kategori", ["Masuk", "Keluar", "SK", "Laporan"])
-            f = st.file_uploader("Pilih Berkas (Gambar/PDF)")
-            if st.form_submit_button("SIMPAN KE CLOUD"):
-                if nama and f:
-                    f_path = os.path.join(SAVE_FOLDER, f.name)
-                    ext = os.path.splitext(f.name)[1].lower()
-                    
-                    # Kompres jika Gambar
-                    if ext in ['.jpg', '.jpeg', '.png']:
-                        proc = compress_image(f)
-                        with open(f_path, "wb") as out: out.write(proc.getvalue())
-                    else:
-                        with open(f_path, "wb") as out: out.write(f.getbuffer())
-                    
-                    # Update Database
-                    new_row = {"Tanggal": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"), "Nama": nama, "Kategori": kat, "File": f.name}
-                    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-                    df.to_csv(DB_FILE, index=False)
-                    st.success(f"✅ Berhasil! Berkas '{nama}' sudah aman di Cloud.")
+            submit = st.form_submit_button("SIMPAN KE BRANKAS")
+            
+            if submit:
+                if nama:
+                    # Ambil data lama dari Sheets
+                    existing_data = conn.read(spreadsheet=URL_SHEET)
+                    # Tambah baris baru
+                    new_row = pd.DataFrame([{
+                        "tanggal": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"),
+                        "nama": nama,
+                        "kategori": kat,
+                        "link file": "Tersimpan di sistem"
+                    }])
+                    updated_df = pd.concat([existing_data, new_row], ignore_index=True)
+                    # Kirim balik ke Google Sheets
+                    conn.update(spreadsheet=URL_SHEET, data=updated_df)
+                    st.success(f"✅ Mantap Bree! '{nama}' sudah masuk ke Google Sheets.")
+                    st.balloons()
+                else:
+                    st.warning("Nama berkas jangan kosong ya.")
 
     elif menu == "🔍 Database":
-        st.title("🔍 Daftar Berkas Digital")
-        if df.empty:
-            st.info("Belum ada data.")
-        else:
-            st.dataframe(df, use_container_width=True)
-            # Fitur Download Database
-            csv = df.to_csv(index=False).encode('utf-8')
-            st.download_button("📥 Download Laporan CSV", data=csv, file_name="rekap_sipeka.csv", mime="text/csv")
+        st.title("🔍 Database Google Sheets")
+        data = conn.read(spreadsheet=URL_SHEET)
+        st.dataframe(data, use_container_width=True)
+        st.markdown(f"🔗 [Buka Google Sheets Langsung]({URL_SHEET})")

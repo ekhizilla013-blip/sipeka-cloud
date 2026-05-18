@@ -1,14 +1,43 @@
 import streamlit as st
 import pandas as pd
 import os
-import time
+import dropbox
 from io import BytesIO
 
 # --- KONFIGURASI UTAMA ---
 st.set_page_config(page_title="SIPEKA CLOUD ULTIMATE", page_icon="☁️", layout="wide")
 
+# 🔑 KUNCI REAL CLOUD DROPBOX KAMU (VERSI SEGAR):
+DROPBOX_TOKEN = "7thgxqfkwtdo7xu"
+
 DB_FILE = "database_arsip.csv"
 MEMO_FILE = "memo_internal.txt"
+
+# Fungsi Hubungkan ke Dropbox
+def upload_ke_dropbox(file_data, file_name):
+    try:
+        dbx = dropbox.Dropbox(DROPBOX_TOKEN)
+        path = f"/{file_name}"
+        
+        # 1. Upload file beneran ke folder aplikasi Dropbox
+        dbx.files_upload(file_data, path, mode=dropbox.files.WriteMode.overwrite)
+        
+        # 2. Buat Tautan Publik Otomatis
+        link = dbx.sharing_create_shared_link_with_settings(path)
+        
+        # 3. Ubah dl=0 jadi raw=1 agar file bisa langsung di-preview di browser pas diklik
+        return link.url.replace("?dl=0", "?raw=1")
+    except Exception as e:
+        # Antispam jika link sudah pernah dibuat sebelumnya
+        if "shared_link_already_exists" in str(e):
+            try:
+                dbx = dropbox.Dropbox(DROPBOX_TOKEN)
+                links = dbx.sharing_list_shared_links(path=path, direct_only=True)
+                return links.links[0].url.replace("?dl=0", "?raw=1")
+            except:
+                pass
+        st.error(f"Gagal upload ke Dropbox: {e}")
+        return "Gagal Upload"
 
 def tampilkan_header():
     st.markdown("""
@@ -67,39 +96,33 @@ else:
                 perihal = st.text_input("Perihal / Judul Berkas", placeholder="Contoh: Undangan Rapat Koordinasi")
             
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("<h5 style='color: #22d3ee;'>⚙️ DIGITAL STORAGE INTEGRATION</h5>", unsafe_allow_html=True)
+            st.markdown("<h5 style='color: #22d3ee;'>⚙️ REAL CLOUD STORAGE INTEGRATION</h5>", unsafe_allow_html=True)
             uploaded_file = st.file_uploader("Pilih Berkas Lampiran (PDF, PNG, JPG, PPTX)", type=["pdf", "png", "jpg", "jpeg", "pptx", "docx"])
             
             submit = st.form_submit_button("🚀 SIMPAN & UNGGAH BERKAS KE CLOUD")
             
             if submit:
                 if no_surat and perihal:
-                    link_simulasi = "https://kominfosan.halmaherautarakab.go.id"
+                    link_final = "Tidak Ada File"
                     
                     if uploaded_file is not None:
-                        progress_text = f"Mengonversi dan mengenkripsi {uploaded_file.name} ke server lokal... Mohon tunggu."
-                        my_bar = st.progress(0, text=progress_text)
-                        
-                        # Animasi Loading Visual Keren
-                        for percent_complete in range(100):
-                            time.sleep(0.01)
-                            my_bar.progress(percent_complete + 1, text=progress_text)
-                        time.sleep(0.3)
-                        my_bar.empty()
+                        with st.spinner(f"Sedang mengunggah {uploaded_file.name} ke Cloud Dropbox..."):
+                            file_bytes = uploaded_file.read()
+                            link_final = upload_ke_dropbox(file_bytes, uploaded_file.name)
                     
                     new_row = pd.DataFrame([{
                         "Tanggal": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"), 
                         "No Surat": no_surat, 
                         "Perihal": perihal, 
                         "Kategori": kat,
-                        "Link Berkas": link_simulasi
+                        "Link Berkas": link_final
                     }])
                     df = pd.concat([df, new_row], ignore_index=True)
                     df.to_csv(DB_FILE, index=False)
-                    st.success(f"✅ Sukses! Data & Berkas '{uploaded_file.name if uploaded_file else ''}' Berhasil Dikunci di Sistem.")
+                    st.success(f"✅ Sukses Total! Berkas Fisik Berhasil Dikunci di Cloud.")
                     st.balloons()
                 else:
-                    st.warning("⚠️ Gagal Simpan! Kolom 'Nomor Surat' dan 'Perihal' wajib diisi.")
+                    st.warning("⚠️ Gagal Simpan! Kolom 'Nomor Surat' dan 'Perihal' wajib diisi ya, Bree.")
 
     # --- MENU 2: DATABASE & LAPORAN ---
     elif menu == "🔍 Database & Laporan":
@@ -123,17 +146,18 @@ else:
         search_query = st.text_input("🔍 Cari Surat Cepat...")
         
         df_display = df.copy()
+        
         if search_query:
             df_display = df_display[df_display['No Surat'].astype(str).str.contains(search_query, case=False) | 
                                     df_display['Perihal'].astype(str).str.contains(search_query, case=False)]
         
-        # MENAMPILKAN TABEL DENGAN LINK BIRU AKTIF!
+        # AKTIFKAN LINK BIRU DI TABEL YANG BISA DIKLIK MEMBUKA FILE ASLI
         st.data_editor(
             df_display,
             column_config={
                 "Link Berkas": st.column_config.LinkColumn(
                     "Link Berkas",
-                    help="Akses dokumen fisik",
+                    help="Klik link untuk membuka dokumen fisik asli dari Cloud",
                     max_chars=1000,
                 )
             },

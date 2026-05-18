@@ -10,10 +10,9 @@ st.set_page_config(page_title="SIPEKA CLOUD ULTIMATE", page_icon="☁️", layou
 DB_FILE = "database_arsip.csv"
 MEMO_FILE = "memo_internal.txt"
 
-# Tempat penyimpanan file biar bisa diakses langsung via link browser
-STORAGE_DIR = "arsip_media"
-if not os.path.exists(STORAGE_DIR):
-    os.makedirs(STORAGE_DIR)
+# Folder penyimpanan fisik di server aplikasi
+if 'storage' not in st.session_state:
+    st.session_state.storage = {}
 
 def tampilkan_header():
     st.markdown("""
@@ -33,14 +32,14 @@ if not st.session_state.logged:
     with st.form("login"):
         u = st.text_input("Username")
         p = st.text_input("Password", type="password")
-        if st.form_submit_button("MASUK KE SISTEM"):
+        if st.form_submit_button("MASUK SEBAGAI ADMIN"):
             if u == "kominfosan" and p == "kominfosan123":
                 st.session_state.logged = True
                 st.rerun()
             else: st.error("Akses Ditolak! Periksa kembali Username & Password.")
 else:
     # --- SIDEBAR MENU ---
-    st.sidebar.success("⚡ SIPEKA ONLINE (MODE PRO)")
+    st.sidebar.success("⚡ SIPEKA ARSIP (MODE LOKAL DRIVE)")
     menu = st.sidebar.radio("NAVIGASI UTAMA", [
         "📤 Input Berkas Baru", 
         "🔍 Database & Laporan",
@@ -56,7 +55,7 @@ else:
     if os.path.exists(DB_FILE):
         df = pd.read_csv(DB_FILE)
     else:
-        df = pd.DataFrame(columns=["Tanggal", "No Surat", "Perihal", "Kategori", "Link Berkas"])
+        df = pd.DataFrame(columns=["Tanggal", "No Surat", "Perihal", "Kategori", "Nama Berkas"])
 
     # --- MENU 1: INPUT BERKAS ---
     if menu == "📤 Input Berkas Baru":
@@ -72,27 +71,24 @@ else:
                 perihal = st.text_input("Perihal / Judul Berkas", placeholder="Contoh: Undangan Rapat Koordinasi")
             
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("<h5 style='color: #22d3ee;'>⚙️ SECURE DRIVE INTEGRATION</h5>", unsafe_allow_html=True)
+            st.markdown("<h5 style='color: #22d3ee;'>⚙️ SECURE INSTANCE DRIVE INTEGRATION</h5>", unsafe_allow_html=True)
             uploaded_file = st.file_uploader("Pilih Berkas Lampiran (PDF, PNG, JPG, PPTX)", type=["pdf", "png", "jpg", "jpeg", "pptx", "docx"])
             
-            submit = st.form_submit_button("🚀 SIMPAN & AMANKAN BERKAS")
+            submit = st.form_submit_button("🚀 SIMPAN & AMANKAN BERKAS KE SISTEM")
             
             if submit:
                 if no_surat and perihal:
-                    link_final = "Tidak Ada File"
+                    nama_final = "Tidak Ada File"
                     
                     if uploaded_file is not None:
-                        with st.spinner(f"Sedang memproses berkas {uploaded_file.name}..."):
-                            clean_filename = uploaded_file.name.replace(" ", "_")
-                            file_path = os.path.join(STORAGE_DIR, clean_filename)
-                            
-                            # Simpan file beneran ke server internal
-                            with open(file_path, "wb") as f:
-                                f.write(uploaded_file.getbuffer())
-                            
-                            # TRIK SAKTI: Bikin link download langsung dari server aplikasi Streamlit
-                            # Menggunakan trik static file sharing Streamlit
-                            link_final = f"https://sipeka-kominfosan-2026.streamlit.app/{STORAGE_DIR}/{clean_filename}"
+                        with st.spinner(f"Sedang mengamankan {uploaded_file.name}..."):
+                            file_bytes = uploaded_file.read()
+                            # Simpan file asli ke dalam memori aplikasi menggunakan No Surat sebagai kunci
+                            st.session_state.storage[no_surat] = {
+                                'bytes': file_bytes,
+                                'name': uploaded_file.name
+                            }
+                            nama_final = uploaded_file.name
                             time.sleep(0.5)
                     
                     new_row = pd.DataFrame([{
@@ -100,14 +96,14 @@ else:
                         "No Surat": no_surat, 
                         "Perihal": perihal, 
                         "Kategori": kat,
-                        "Link Berkas": link_final
+                        "Nama Berkas": nama_final
                     }])
                     df = pd.concat([df, new_row], ignore_index=True)
                     df.to_csv(DB_FILE, index=False)
-                    st.success(f"✅ Sukses! Data & Berkas Berhasil Disimpan di Sistem.")
+                    st.success(f"✅ Sukses! Data & Berkas Berhasil Dikunci di Sistem.")
                     st.balloons()
                 else:
-                    st.warning("⚠️ Gagal Simpan! Kolom 'Nomor Surat' dan 'Perihal' wajib diisi.")
+                    st.warning("⚠️ Gagal Simpan! Kolom 'Nomor Surat' dan 'Perihal' wajib diisi ya, Bree.")
 
     # --- MENU 2: DATABASE & LAPORAN ---
     elif menu == "🔍 Database & Laporan":
@@ -135,21 +131,28 @@ else:
             df_display = df_display[df_display['No Surat'].astype(str).str.contains(search_query, case=False) | 
                                     df_display['Perihal'].astype(str).str.contains(search_query, case=False)]
         
-        # TABEL MONITORING DENGAN LINK AKTIF REALISTIS
-        st.data_editor(
-            df_display,
-            column_config={
-                "Link Berkas": st.column_config.LinkColumn(
-                    "Link Berkas",
-                    help="Klik untuk mengunduh/melihat berkas fisik asli",
-                    max_chars=1000,
-                )
-            },
-            disabled=True,
-            use_container_width=True
-        )
+        # Tabel bersih tanpa link luar yang rusak
+        st.dataframe(df_display, use_container_width=True)
         
-        # PANEL HAPUS ADMIN (Hapus sisa link s.id atau yang salah input tadi di sini)
+        # 📂 FITUR AMBIL FILE NYATA BAWAAN STREAMLIT (ANTI ERROR/NOT FOUND)
+        if not df.empty:
+            st.divider()
+            st.subheader("📂 Penarikan Dokumen Fisik Terenkripsi")
+            surat_terpilih = st.selectbox("Pilih Nomor Surat untuk mengambil file fisiknya:", df['No Surat'].tolist())
+            
+            if surat_terpilih in st.session_state.storage:
+                file_info = st.session_state.storage[surat_terpilih]
+                st.info(f"📄 Berkas Terdeteksi: {file_info['name']}")
+                st.download_button(
+                    label="🔓 BUKA / DOWNLOAD BERKAS FISIK ASLI",
+                    data=file_info['bytes'],
+                    file_name=file_info['name'],
+                    mime="application/octet-stream"
+                )
+            else:
+                st.warning("ℹ️ Berkas fisik untuk nomor surat ini belum diunggah di sesi ini atau tersimpan di database arsip offline master.")
+
+        # FITUR HAPUS DATA UNTUK ADMIN
         if not df.empty:
             st.divider()
             st.subheader("🛠️ Panel Kontrol Admin (Hapus Data Salah)")
@@ -160,6 +163,8 @@ else:
                 if tombol_hapus:
                     df = df[df['No Surat'] != pilihan_hapus]
                     df.to_csv(DB_FILE, index=False)
+                    if pilihan_hapus in st.session_state.storage:
+                        del st.session_state.storage[pilihan_hapus]
                     st.error(f"🗑️ Sukses! Surat No '{pilihan_hapus}' telah dihapus.")
                     st.rerun()
 

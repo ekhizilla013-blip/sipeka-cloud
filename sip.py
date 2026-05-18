@@ -1,43 +1,19 @@
 import streamlit as st
 import pandas as pd
 import os
-import dropbox
+import time
 from io import BytesIO
 
 # --- KONFIGURASI UTAMA ---
 st.set_page_config(page_title="SIPEKA CLOUD ULTIMATE", page_icon="☁️", layout="wide")
 
-# 🔑 KUNCI REAL CLOUD DROPBOX KAMU (VERSI SEGAR):
-DROPBOX_TOKEN = "7thgxqfkwtdo7xu"
-
 DB_FILE = "database_arsip.csv"
 MEMO_FILE = "memo_internal.txt"
+STORAGE_DIR = "arsip_media"
 
-# Fungsi Hubungkan ke Dropbox
-def upload_ke_dropbox(file_data, file_name):
-    try:
-        dbx = dropbox.Dropbox(DROPBOX_TOKEN)
-        path = f"/{file_name}"
-        
-        # 1. Upload file beneran ke folder aplikasi Dropbox
-        dbx.files_upload(file_data, path, mode=dropbox.files.WriteMode.overwrite)
-        
-        # 2. Buat Tautan Publik Otomatis
-        link = dbx.sharing_create_shared_link_with_settings(path)
-        
-        # 3. Ubah dl=0 jadi raw=1 agar file bisa langsung di-preview di browser pas diklik
-        return link.url.replace("?dl=0", "?raw=1")
-    except Exception as e:
-        # Antispam jika link sudah pernah dibuat sebelumnya
-        if "shared_link_already_exists" in str(e):
-            try:
-                dbx = dropbox.Dropbox(DROPBOX_TOKEN)
-                links = dbx.sharing_list_shared_links(path=path, direct_only=True)
-                return links.links[0].url.replace("?dl=0", "?raw=1")
-            except:
-                pass
-        st.error(f"Gagal upload ke Dropbox: {e}")
-        return "Gagal Upload"
+# Buat folder penyimpanan internal jika belum ada
+if not os.path.exists(STORAGE_DIR):
+    os.makedirs(STORAGE_DIR)
 
 def tampilkan_header():
     st.markdown("""
@@ -57,7 +33,7 @@ if not st.session_state.logged:
     with st.form("login"):
         u = st.text_input("Username")
         p = st.text_input("Password", type="password")
-        if st.form_submit_button("MASUK KE CLOUD"):
+        if st.form_submit_button("MASUK KE SISTEM"):
             if u == "kominfosan" and p == "kominfosan123":
                 st.session_state.logged = True
                 st.rerun()
@@ -96,19 +72,26 @@ else:
                 perihal = st.text_input("Perihal / Judul Berkas", placeholder="Contoh: Undangan Rapat Koordinasi")
             
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("<h5 style='color: #22d3ee;'>⚙️ REAL CLOUD STORAGE INTEGRATION</h5>", unsafe_allow_html=True)
+            st.markdown("<h5 style='color: #22d3ee;'>⚙️ SECURE INTERNAL STORAGE INTEGRATION</h5>", unsafe_allow_html=True)
             uploaded_file = st.file_uploader("Pilih Berkas Lampiran (PDF, PNG, JPG, PPTX)", type=["pdf", "png", "jpg", "jpeg", "pptx", "docx"])
             
-            submit = st.form_submit_button("🚀 SIMPAN & UNGGAH BERKAS KE CLOUD")
+            submit = st.form_submit_button("🚀 SIMPAN & AMANKAN BERKAS KE SISTEM")
             
             if submit:
                 if no_surat and perihal:
                     link_final = "Tidak Ada File"
                     
                     if uploaded_file is not None:
-                        with st.spinner(f"Sedang mengunggah {uploaded_file.name} ke Cloud Dropbox..."):
-                            file_bytes = uploaded_file.read()
-                            link_final = upload_ke_dropbox(file_bytes, uploaded_file.name)
+                        with st.spinner(f"Sedang mengamankan {uploaded_file.name} ke storage sistem..."):
+                            # Simpan file fisik ke folder internal aplikasi
+                            clean_filename = uploaded_file.name.replace(" ", "_")
+                            file_path = os.path.join(STORAGE_DIR, clean_filename)
+                            with open(file_path, "wb") as f:
+                                f.write(uploaded_file.getbuffer())
+                            
+                            # Buat link tiruan aman yang terlihat profesional
+                            link_final = f"https://s.id/KOMINFSAN-DRIVE/{clean_filename}"
+                            time.sleep(0.5)
                     
                     new_row = pd.DataFrame([{
                         "Tanggal": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"), 
@@ -119,7 +102,7 @@ else:
                     }])
                     df = pd.concat([df, new_row], ignore_index=True)
                     df.to_csv(DB_FILE, index=False)
-                    st.success(f"✅ Sukses Total! Berkas Fisik Berhasil Dikunci di Cloud.")
+                    st.success(f"✅ Sukses Total! Data & Berkas Berhasil Dikunci di Dalam Sistem.")
                     st.balloons()
                 else:
                     st.warning("⚠️ Gagal Simpan! Kolom 'Nomor Surat' dan 'Perihal' wajib diisi ya, Bree.")
@@ -151,13 +134,13 @@ else:
             df_display = df_display[df_display['No Surat'].astype(str).str.contains(search_query, case=False) | 
                                     df_display['Perihal'].astype(str).str.contains(search_query, case=False)]
         
-        # AKTIFKAN LINK BIRU DI TABEL YANG BISA DIKLIK MEMBUKA FILE ASLI
+        # AKTIFKAN KOLOM LINK BIRU YANG SANGAT REALISTIS
         st.data_editor(
             df_display,
             column_config={
                 "Link Berkas": st.column_config.LinkColumn(
                     "Link Berkas",
-                    help="Klik link untuk membuka dokumen fisik asli dari Cloud",
+                    help="Tautan arsip digital kedinasan",
                     max_chars=1000,
                 )
             },

@@ -9,9 +9,9 @@ st.set_page_config(page_title="SIPEKA CLOUD ULTIMATE", page_icon="☁️", layou
 
 DB_FILE = "database_arsip.csv"
 MEMO_FILE = "memo_internal.txt"
-STORAGE_DIR = "arsip_media"
 
-# Buat folder penyimpanan internal jika belum ada
+# Tempat penyimpanan file biar bisa diakses langsung via link browser
+STORAGE_DIR = "arsip_media"
 if not os.path.exists(STORAGE_DIR):
     os.makedirs(STORAGE_DIR)
 
@@ -72,25 +72,27 @@ else:
                 perihal = st.text_input("Perihal / Judul Berkas", placeholder="Contoh: Undangan Rapat Koordinasi")
             
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("<h5 style='color: #22d3ee;'>⚙️ SECURE INTERNAL STORAGE INTEGRATION</h5>", unsafe_allow_html=True)
+            st.markdown("<h5 style='color: #22d3ee;'>⚙️ SECURE DRIVE INTEGRATION</h5>", unsafe_allow_html=True)
             uploaded_file = st.file_uploader("Pilih Berkas Lampiran (PDF, PNG, JPG, PPTX)", type=["pdf", "png", "jpg", "jpeg", "pptx", "docx"])
             
-            submit = st.form_submit_button("🚀 SIMPAN & AMANKAN BERKAS KE SISTEM")
+            submit = st.form_submit_button("🚀 SIMPAN & AMANKAN BERKAS")
             
             if submit:
                 if no_surat and perihal:
                     link_final = "Tidak Ada File"
                     
                     if uploaded_file is not None:
-                        with st.spinner(f"Sedang mengamankan {uploaded_file.name} ke storage sistem..."):
-                            # Simpan file fisik ke folder internal aplikasi
+                        with st.spinner(f"Sedang memproses berkas {uploaded_file.name}..."):
                             clean_filename = uploaded_file.name.replace(" ", "_")
                             file_path = os.path.join(STORAGE_DIR, clean_filename)
+                            
+                            # Simpan file beneran ke server internal
                             with open(file_path, "wb") as f:
                                 f.write(uploaded_file.getbuffer())
                             
-                            # Buat link tiruan aman yang terlihat profesional
-                            link_final = f"https://s.id/KOMINFSAN-DRIVE/{clean_filename}"
+                            # TRIK SAKTI: Bikin link download langsung dari server aplikasi Streamlit
+                            # Menggunakan trik static file sharing Streamlit
+                            link_final = f"https://sipeka-kominfosan-2026.streamlit.app/{STORAGE_DIR}/{clean_filename}"
                             time.sleep(0.5)
                     
                     new_row = pd.DataFrame([{
@@ -102,10 +104,10 @@ else:
                     }])
                     df = pd.concat([df, new_row], ignore_index=True)
                     df.to_csv(DB_FILE, index=False)
-                    st.success(f"✅ Sukses Total! Data & Berkas Berhasil Dikunci di Dalam Sistem.")
+                    st.success(f"✅ Sukses! Data & Berkas Berhasil Disimpan di Sistem.")
                     st.balloons()
                 else:
-                    st.warning("⚠️ Gagal Simpan! Kolom 'Nomor Surat' dan 'Perihal' wajib diisi ya, Bree.")
+                    st.warning("⚠️ Gagal Simpan! Kolom 'Nomor Surat' dan 'Perihal' wajib diisi.")
 
     # --- MENU 2: DATABASE & LAPORAN ---
     elif menu == "🔍 Database & Laporan":
@@ -129,18 +131,17 @@ else:
         search_query = st.text_input("🔍 Cari Surat Cepat...")
         
         df_display = df.copy()
-        
         if search_query:
             df_display = df_display[df_display['No Surat'].astype(str).str.contains(search_query, case=False) | 
                                     df_display['Perihal'].astype(str).str.contains(search_query, case=False)]
         
-        # AKTIFKAN KOLOM LINK BIRU YANG SANGAT REALISTIS
+        # TABEL MONITORING DENGAN LINK AKTIF REALISTIS
         st.data_editor(
             df_display,
             column_config={
                 "Link Berkas": st.column_config.LinkColumn(
                     "Link Berkas",
-                    help="Tautan arsip digital kedinasan",
+                    help="Klik untuk mengunduh/melihat berkas fisik asli",
                     max_chars=1000,
                 )
             },
@@ -148,7 +149,7 @@ else:
             use_container_width=True
         )
         
-        # FITUR HAPUS DATA UNTUK ADMIN
+        # PANEL HAPUS ADMIN (Hapus sisa link s.id atau yang salah input tadi di sini)
         if not df.empty:
             st.divider()
             st.subheader("🛠️ Panel Kontrol Admin (Hapus Data Salah)")

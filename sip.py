@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 
-# --- TRIK JALAN PINTAS: PAKSA INSTAL BUMBU DI SERVER ---
+# --- AUTO INSTAL PUSTAKA ---
 try:
     import gspread
 except ImportError:
@@ -20,11 +20,10 @@ import googleapiclient.http
 # --- KONFIGURASI UTAMA ---
 st.set_page_config(page_title="SIPEKA CLOUD ULTIMATE", page_icon="☁️", layout="wide")
 
-# 📝 NAMA GOOGLE SHEET & ID FOLDER GOOGLE DRIVE KAMU (SUDAH DIKUNCI):
 GOOGLE_SHEET_NAME = "database sipeka master"
 GOOGLE_DRIVE_FOLDER_ID = "1ggi3tUgFjefe3kzzbZFEy54b3OzUBtr6"
 
-# 🔑 KUNCI ENKRIPSI GOOGLE CLOUD (DARI FILE JSON KAMU):
+# 🔑 KUNCI ENKRIPSI GOOGLE CLOUD (RE-FORMATTED BIAR ANTI-EROR)
 GOOGLE_CREDENTIALS = {
   "type": "service_account",
   "project_id": "fresh-sensor-496705-d9",
@@ -39,11 +38,13 @@ GOOGLE_CREDENTIALS = {
   "universe_domain": "googleapis.com"
 }
 
-# Hubungkan Fungsi Google API
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive'
 ]
+
+# Modifikasi tipis di sini agar pemrosesan karakter \n dibaca dengan benar oleh sistem Google
+GOOGLE_CREDENTIALS["private_key"] = GOOGLE_CREDENTIALS["private_key"].replace("\\n", "\n")
 creds = Credentials.from_service_account_info(GOOGLE_CREDENTIALS, scopes=SCOPES)
 
 def get_google_sheet():

@@ -161,7 +161,6 @@ else:
         search_query = st.text_input("🔍 Cari Surat Cepat...")
         df_display = df.copy()
         
-        # 🔥 Bagian yang tadi bocor/typo sudah diperbaiki total di sini
         if search_query and not df_display.empty:
             df_display = df_display[df_display['No Surat'].astype(str).str.contains(search_query, case=False) | 
                                     df_display['Perihal'].astype(str).str.contains(search_query, case=False)]
@@ -176,3 +175,4 @@ else:
                 use_container_width=True
             )
         else:
+            st.info("Database kosong atau belum ada data yang cocok.")

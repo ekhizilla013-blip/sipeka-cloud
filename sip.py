@@ -23,21 +23,23 @@ st.set_page_config(page_title="SIPEKA CLOUD ULTIMATE", page_icon="☁️", layou
 GOOGLE_SHEET_NAME = "database sipeka master"
 GOOGLE_DRIVE_FOLDER_ID = "1ggi3tUgFjefe3kzzbZFEy54b3OzUBtr6"
 
-# 🔥 SISTEM BACA RAHASIA AMAN & BERSIH
+# 🔥 SISTEM BACA RAHASIA AMAN & BERSIH (FIXED PATH)
 try:
-    # Ambil seluruh variabel dari Streamlit Secrets
+    # Mengambil variabel langsung dari dalam grup [gcp_service_account]
+    gcp_secrets = st.secrets["gcp_service_account"]
+    
     credentials_dict = {
-        "type": st.secrets["type"],
-        "project_id": st.secrets["project_id"],
-        "private_key_id": st.secrets["private_key_id"],
-        "private_key": st.secrets["private_key"].replace("\\n", "\n"), # Merapikan enter kunci
-        "client_email": st.secrets["client_email"],
-        "client_id": st.secrets["client_id"],
-        "auth_uri": st.secrets["auth_uri"],
-        "token_uri": st.secrets["token_uri"],
-        "auth_provider_x509_cert_url": st.secrets["auth_provider_x509_cert_url"],
-        "client_x509_cert_url": st.secrets["client_x509_cert_url"],
-        "universe_domain": st.secrets["universe_domain"]
+        "type": gcp_secrets["type"],
+        "project_id": gcp_secrets["project_id"],
+        "private_key_id": gcp_secrets["private_key_id"],
+        "private_key": gcp_secrets["private_key"], 
+        "client_email": gcp_secrets["client_email"],
+        "client_id": gcp_secrets["client_id"],
+        "auth_uri": gcp_secrets["auth_uri"],
+        "token_uri": gcp_secrets["token_uri"],
+        "auth_provider_x509_cert_url": gcp_secrets["auth_provider_x509_cert_url"],
+        "client_x509_cert_url": gcp_secrets["client_x509_cert_url"],
+        "universe_domain": gcp_secrets["universe_domain"]
     }
     
     SCOPES = [

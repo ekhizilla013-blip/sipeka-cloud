@@ -175,4 +175,4 @@ else:
                 use_container_width=True
             )
         else:
-            st.info("Database kosong atau belum ada data yang cocok.")
+            st.info("Database kosong atau belum ada data yang cocok."

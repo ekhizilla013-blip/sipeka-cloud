@@ -1,4 +1,2 @@
-streamlit
-pandas
-xlsxwriter
-dropbox
+gspread
+google-api-python-client

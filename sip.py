@@ -1,18 +1,67 @@
 import streamlit as st
 import pandas as pd
-import os
 import time
 from io import BytesIO
+import gspread
+from google.oauth2.service_account import Credentials
+import googleapiclient.discovery
+import googleapiclient.http
 
 # --- KONFIGURASI UTAMA ---
 st.set_page_config(page_title="SIPEKA CLOUD ULTIMATE", page_icon="☁️", layout="wide")
 
-DB_FILE = "database_arsip.csv"
-MEMO_FILE = "memo_internal.txt"
+# 📝 NAMA GOOGLE SHEET & ID FOLDER GOOGLE DRIVE KAMU (SUDAH DIKUNCI):
+GOOGLE_SHEET_NAME = "database sipeka master"
+GOOGLE_DRIVE_FOLDER_ID = "1ggi3tUgFjefe3kzzbZFEy54b3OzUBtr6"
 
-# Folder penyimpanan fisik di server aplikasi
-if 'storage' not in st.session_state:
-    st.session_state.storage = {}
+# 🔑 KUNCI ENKRIPSI GOOGLE CLOUD (DARI FILE JSON KAMU):
+GOOGLE_CREDENTIALS = {
+  "type": "service_account",
+  "project_id": "fresh-sensor-496705-d9",
+  "private_key_id": "6e51a3b19c1e9eb8804037a90d035a3f13128774",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDjDEb5MB6OWrEw\n2IaRVjQG83Og9EmY5NICFLjGdUxzDuAG70Nx9VCyV+0ky6iptKUyNC38N1BfguNB\n+M68uQzUdCz3CuWKemXuEJQKlMqMy8YmRo2likJz4CpG3I1m1ZnbeAjWAp+YL1oP\nxE9QKGcMw7yokG9gdb8uOT15dYHvjOVd/Y6oAEwYOtxmp4KH0NoJVpZes3qsITcN\noSVjTfmDihSuj7262PM/rhLS+age7uKga4z142vlqpl65B72XXzbbamuL6o48oKc\nvXG2jCA5Uiqzqaglxv7++Iq2PFKp2gdHyj2JsfPk1K7ZupG8X6lC7VVIjEEAEV3f\nUR/PSdFHAgMBAAECggEAP5Z4KCDwZdkDiBUUNw8H+ixjpV/VXuMy589K4pYGZ7Dy\nUC7hWkCkrZYPff8lyQWlQHa5rEoHkgBTym225McEz1mMIFImcE6QTojJFV+PjLgj\nUiPvVr3ul4pf/MGXPoYzFXK8MsfAT7xvQjwuJFp0ZfBJ3YG6F69ScE0qqOIelmp9\n1Ghrj8TsvsDZ3WVdg8chiKxCmrWGBzzz+FNMlD9qQzd9AhDh0zi/uIA6AHqBWUt6\nCSHCyqfy/xxYY66fTn2UmHxi1hRYGgIKL0Z6a/pFGRZg5n/czoFzA4KLmhsK8zpr\nu462gOJND5sc0NYtnb3P2e8Y7D1/febp2sXAnPec4QKBgQD4zYW6vgF6jxhX7lfi\nqVOSGLxMlJq7TSxcvhL7riEVCxL01FirA2uBWDf76JORCYFN+jUs4dyt0Ny0JNVj\nvYdd1u05vC4CVwX+BIp46Kl0qhaLjnfBt0owT5rWw+ZeotE+NzektyXqXcJz0LE4\nKbayhWPOXBBFz7HbY6i+YfHjZwKBgQDpnaboeh9WQ9By0qjyG9XoASW3xeyw4fyg\nKNxx3VgmjVknruVHgaijmkpSdjVxjqJxtYzxFb0QAhwdFYWrSQ8Ye3QYoJXRYq23\nbALUSIJslNcS9diqoFw/H6Zao3JNAktAv7LZi2yfBMHKD5zlACKc6GmjVIbreLMH\n6p9xGeDXIQKBgQCqXLhEHVSP4imuFALTrlQOBqfw3BRzSi2lN3VyJlJ6wUFyqXAp\ncUcMoyZ6dE+PEW4bwcble6aK0ig9pbcD+8QUClYXoXXznjj5LYzPq6hUvR6A4sW3\nvFStbeS9SBiXFm+mZVLRk6L/rsG2YeDnbxCtfs7Pf5SY6NWFPuFNs21Y4wKBgQCT\nWCron/XZ2+XCNhn2shXFQcv/T+eMXMyQW5VGf9vUXPxpagcUhbPOlEbiIcpteA/+\n9goSGKrpSNtggK2RLgBGab78tXQo3zs/3/Ec4SrZvzqzq7nfTEtCSP0MV+CEr7i0\n+vOcADMfTMnJXvWO/fnWy0Otj2eVZshMau/rTu4f4QKBgQCvSGGFR9Ll2sAgnBIw\nxv18wj+8d1PWUnMDepENVaA1i1hmdkBZPMTgOSE+AWjKdJg31t4/GszDhFvP40Av\nCltZ8Gd/mPz2mUreecN463RIVMRkEoTo0QusvoZyq6lSym6fHA7h37F7JILatWU+\nwso76XPmdXd1bZrby+DgwFRl+A==\n-----END PRIVATE KEY-----\n",
+  "client_email": "kurir-sipeka@fresh-sensor-496705-d9.iam.gserviceaccount.com",
+  "client_id": "110594938055714777460",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/kurir-sipeka%40fresh-sensor-496705-d9.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
+
+# Hubungkan Fungsi Google API
+SCOPES = [
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/drive'
+]
+creds = Credentials.from_service_account_info(GOOGLE_CREDENTIALS, scopes=SCOPES)
+
+def get_google_sheet():
+    client = gspread.authorize(creds)
+    return client.open(GOOGLE_SHEET_NAME).sheet1
+
+def upload_ke_google_drive(file_bytes, file_name):
+    try:
+        service = googleapiclient.discovery.build('drive', 'v3', credentials=creds)
+        file_metadata = {
+            'name': file_name,
+            'parents': [GOOGLE_DRIVE_FOLDER_ID]
+        }
+        media = googleapiclient.http.MediaIoBaseUpload(
+            BytesIO(file_bytes), mimetype='application/octet-stream', resumable=True
+        )
+        file = service.files().create(body=file_metadata, media_body=media, fields='id, webViewLink').execute()
+        
+        # Berikan hak akses publik ke berkas ini agar pimpinan bisa melihat otomatis saat klik link
+        service.permissions().create(
+            fileId=file.get('id'),
+            body={'type': 'anyone', 'role': 'reader'}
+        ).execute()
+        
+        return file.get('webViewLink')
+    except Exception as e:
+        st.error(f"Gagal Simpan ke Google Drive: {e}")
+        return "Gagal Upload"
 
 def tampilkan_header():
     st.markdown("""
@@ -32,30 +81,30 @@ if not st.session_state.logged:
     with st.form("login"):
         u = st.text_input("Username")
         p = st.text_input("Password", type="password")
-        if st.form_submit_button("MASUK SEBAGAI ADMIN"):
+        if st.form_submit_button("MASUK KE CLOUD"):
             if u == "kominfosan" and p == "kominfosan123":
                 st.session_state.logged = True
                 st.rerun()
             else: st.error("Akses Ditolak! Periksa kembali Username & Password.")
 else:
-    # --- SIDEBAR MENU ---
-    st.sidebar.success("⚡ SIPEKA ARSIP (MODE LOKAL DRIVE)")
-    menu = st.sidebar.radio("NAVIGASI UTAMA", [
-        "📤 Input Berkas Baru", 
-        "🔍 Database & Laporan",
-        "📝 Ruang Catatan/Memo"
-    ])
+    st.sidebar.success("⚡ SIPEKA ONLINE (GOOGLE CLOUD MODE)")
+    menu = st.sidebar.radio("NAVIGASI UTAMA", ["📤 Input Berkas Baru", "🔍 Database & Laporan"])
     
-    st.sidebar.divider() 
     if st.sidebar.button("🔒 LOGOUT / KELUAR SISTEM"):
         st.session_state.logged = False 
         st.rerun() 
 
-    # --- LOAD DATABASE ---
-    if os.path.exists(DB_FILE):
-        df = pd.read_csv(DB_FILE)
-    else:
-        df = pd.DataFrame(columns=["Tanggal", "No Surat", "Perihal", "Kategori", "Nama Berkas"])
+    # --- AMBIL DATA DARI GOOGLE SHEET ---
+    try:
+        sheet = get_google_sheet()
+        records = sheet.get_all_records()
+        if records:
+            df = pd.DataFrame(records)
+        else:
+            df = pd.DataFrame(columns=["Tanggal", "No Surat", "Perihal", "Kategori", "Link Berkas"])
+    except Exception as e:
+        st.error(f"Gagal terhubung ke Google Sheets: {e}")
+        df = pd.DataFrame(columns=["Tanggal", "No Surat", "Perihal", "Kategori", "Link Berkas"])
 
     # --- MENU 1: INPUT BERKAS ---
     if menu == "📤 Input Berkas Baru":
@@ -71,143 +120,47 @@ else:
                 perihal = st.text_input("Perihal / Judul Berkas", placeholder="Contoh: Undangan Rapat Koordinasi")
             
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("<h5 style='color: #22d3ee;'>⚙️ SECURE INSTANCE DRIVE INTEGRATION</h5>", unsafe_allow_html=True)
-            uploaded_file = st.file_uploader("Pilih Berkas Lampiran (PDF, PNG, JPG, PPTX)", type=["pdf", "png", "jpg", "jpeg", "pptx", "docx"])
-            
-            submit = st.form_submit_button("🚀 SIMPAN & AMANKAN BERKAS KE SISTEM")
+            uploaded_file = st.file_uploader("Pilih Berkas Lampiran (PDF, PNG, JPG)", type=["pdf", "png", "jpg", "jpeg"])
+            submit = st.form_submit_button("🚀 SIMPAN PERMANEN KE GOOGLE CLOUD")
             
             if submit:
                 if no_surat and perihal:
-                    nama_final = "Tidak Ada File"
-                    
+                    link_final = "Tidak Ada File"
                     if uploaded_file is not None:
-                        with st.spinner(f"Sedang mengamankan {uploaded_file.name}..."):
-                            file_bytes = uploaded_file.read()
-                            # Simpan file asli ke dalam memori aplikasi menggunakan No Surat sebagai kunci
-                            st.session_state.storage[no_surat] = {
-                                'bytes': file_bytes,
-                                'name': uploaded_file.name
-                            }
-                            nama_final = uploaded_file.name
-                            time.sleep(0.5)
+                        with st.spinner(f"Mengunggah {uploaded_file.name} ke Google Drive..."):
+                            link_final = upload_ke_google_drive(uploaded_file.read(), uploaded_file.name)
                     
-                    new_row = pd.DataFrame([{
-                        "Tanggal": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"), 
-                        "No Surat": no_surat, 
-                        "Perihal": perihal, 
-                        "Kategori": kat,
-                        "Nama Berkas": nama_final
-                    }])
-                    df = pd.concat([df, new_row], ignore_index=True)
-                    df.to_csv(DB_FILE, index=False)
-                    st.success(f"✅ Sukses! Data & Berkas Berhasil Dikunci di Sistem.")
+                    # Tulis baris baru langsung ke Google Sheet
+                    waktu = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M")
+                    sheet.append_row([waktu, no_surat, perihal, kat, link_final])
+                    
+                    st.success(f"✅ Sukses Abadi! Data tersimpan di Google Cloud.")
                     st.balloons()
+                    time.sleep(1)
+                    st.rerun()
                 else:
-                    st.warning("⚠️ Gagal Simpan! Kolom 'Nomor Surat' dan 'Perihal' wajib diisi ya, Bree.")
+                    st.warning("⚠️ Kolom 'Nomor Surat' dan 'Perihal' wajib diisi.")
 
     # --- MENU 2: DATABASE & LAPORAN ---
     elif menu == "🔍 Database & Laporan":
         tampilkan_header()
+        st.subheader("🔍 Monitoring Kendali Arsip (Google Cloud Live Data)")
         
-        # STATISTIK DASHBOARD VISUAL
-        st.subheader("📊 Ringkasan Arsip Digital")
-        total_surat = len(df)
-        total_masuk = len(df[df['Kategori'] == 'Masuk'])
-        total_keluar = len(df[df['Kategori'] == 'Keluar'])
-        total_sk = len(df[df['Kategori'] == 'SK'])
-        
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("📂 Total Arsip", f"{total_surat} Berkas")
-        m2.metric("📥 Surat Masuk", f"{total_masuk} Berkas")
-        m3.metric("📤 Surat Keluar", f"{total_keluar} Berkas")
-        m4.metric("📜 Total SK", f"{total_sk} Berkas")
-        st.divider()
-        
-        st.subheader("🔍 Monitoring Kendali Arsip")
         search_query = st.text_input("🔍 Cari Surat Cepat...")
-        
         df_display = df.copy()
-        if search_query:
+        
+        if search_query and not df_display.empty:
             df_display = df_display[df_display['No Surat'].astype(str).str.contains(search_query, case=False) | 
                                     df_display['Perihal'].astype(str).str.contains(search_query, case=False)]
         
-        # Tabel bersih tanpa link luar yang rusak
-        st.dataframe(df_display, use_container_width=True)
-        
-        # 📂 FITUR AMBIL FILE NYATA BAWAAN STREAMLIT (ANTI ERROR/NOT FOUND)
-        if not df.empty:
-            st.divider()
-            st.subheader("📂 Penarikan Dokumen Fisik Terenkripsi")
-            surat_terpilih = st.selectbox("Pilih Nomor Surat untuk mengambil file fisiknya:", df['No Surat'].tolist())
-            
-            if surat_terpilih in st.session_state.storage:
-                file_info = st.session_state.storage[surat_terpilih]
-                st.info(f"📄 Berkas Terdeteksi: {file_info['name']}")
-                st.download_button(
-                    label="🔓 BUKA / DOWNLOAD BERKAS FISIK ASLI",
-                    data=file_info['bytes'],
-                    file_name=file_info['name'],
-                    mime="application/octet-stream"
-                )
-            else:
-                st.warning("ℹ️ Berkas fisik untuk nomor surat ini belum diunggah di sesi ini atau tersimpan di database arsip offline master.")
-
-        # FITUR HAPUS DATA UNTUK ADMIN
-        if not df.empty:
-            st.divider()
-            st.subheader("🛠️ Panel Kontrol Admin (Hapus Data Salah)")
-            with st.expander("❌ Klik di sini untuk menghapus data yang salah input"):
-                pilihan_hapus = st.selectbox("Pilih No Surat yang akan dihapus:", df['No Surat'].tolist())
-                tombol_hapus = st.button("🗑️ HAPUS PERMANEN")
-                
-                if tombol_hapus:
-                    df = df[df['No Surat'] != pilihan_hapus]
-                    df.to_csv(DB_FILE, index=False)
-                    if pilihan_hapus in st.session_state.storage:
-                        del st.session_state.storage[pilihan_hapus]
-                    st.error(f"🗑️ Sukses! Surat No '{pilihan_hapus}' telah dihapus.")
-                    st.rerun()
-
-        st.divider()
-        st.subheader("📥 Penarikan Laporan Excel")
-        
-        def to_excel(data_frame):
-            output = BytesIO()
-            writer = pd.ExcelWriter(output, engine='xlsxwriter')
-            data_frame.to_excel(writer, index=False, sheet_name='Database_Sipeka')
-            writer.close()
-            return output.getvalue()
-
-        if not df.empty:
-            excel_data = to_excel(df)
-            st.download_button(
-                label="📊 DOWNLOAD LAPORAN EXCEL (.xlsx)",
-                data=excel_data,
-                file_name='LAPORAN_SIPEKA_ULTIMATE.xlsx',
-                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        if not df_display.empty:
+            st.data_editor(
+                df_display,
+                column_config={
+                    "Link Berkas": st.column_config.LinkColumn("Link Berkas", help="Klik untuk membuka berkas asli di Google Drive")
+                },
+                disabled=True,
+                use_container_width=True
             )
-
-    # --- MENU 3: RUANG CATATAN / MEMO INTERNAL ---
-    elif menu == "📝 Ruang Catatan/Memo":
-        tampilkan_header()
-        st.subheader("📝 Memo & Catatan Internal Staf")
-        
-        if os.path.exists(MEMO_FILE):
-            with open(MEMO_FILE, "r") as f:
-                memo_lama = f.read()
         else:
-            memo_lama = "Belum ada catatan."
-            
-        st.text_area("🗒️ Catatan Saat Ini:", value=memo_lama, height=200, disabled=True)
-        
-        with st.form("form_memo", clear_on_submit=True):
-            isi_memo = st.text_input("Ketik catatan baru di sini...")
-            simpan_memo = st.form_submit_button("✍️ Tambahkan")
-            
-            if simpan_memo and isi_memo:
-                waktu = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M")
-                format_baru = f"[{waktu}] Staf: {isi_memo}\n"
-                with open(MEMO_FILE, "a") as f:
-                    f.write(format_baru)
-                st.success("📝 Catatan berhasil ditambahkan!")
-                st.rerun()
+            st.info("Database kosong atau belum ada data yang cocok.")

@@ -1,8 +1,18 @@
+import os
+import sys
+import subprocess
+
+# --- TRIK JALAN PINTAS: PAKSA INSTAL BUMBU DI SERVER ---
+try:
+    import gspread
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "gspread", "google-api-python-client"])
+    import gspread
+
 import streamlit as st
 import pandas as pd
 import time
 from io import BytesIO
-import gspread
 from google.oauth2.service_account import Credentials
 import googleapiclient.discovery
 import googleapiclient.http
@@ -52,7 +62,6 @@ def upload_ke_google_drive(file_bytes, file_name):
         )
         file = service.files().create(body=file_metadata, media_body=media, fields='id, webViewLink').execute()
         
-        # Berikan hak akses publik ke berkas ini agar pimpinan bisa melihat otomatis saat klik link
         service.permissions().create(
             fileId=file.get('id'),
             body={'type': 'anyone', 'role': 'reader'}
@@ -130,7 +139,6 @@ else:
                         with st.spinner(f"Mengunggah {uploaded_file.name} ke Google Drive..."):
                             link_final = upload_ke_google_drive(uploaded_file.read(), uploaded_file.name)
                     
-                    # Tulis baris baru langsung ke Google Sheet
                     waktu = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M")
                     sheet.append_row([waktu, no_surat, perihal, kat, link_final])
                     
@@ -157,7 +165,7 @@ else:
             st.data_editor(
                 df_display,
                 column_config={
-                    "Link Berkas": st.column_config.LinkColumn("Link Berkas", help="Klik untuk membuka berkas asli di Google Drive")
+                    "Link Berkas": st.column_config.LinkColumn("Link Berkas")
                 },
                 disabled=True,
                 use_container_width=True

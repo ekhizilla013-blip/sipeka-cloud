@@ -23,12 +23,39 @@ st.set_page_config(page_title="SIPEKA CLOUD ULTIMATE", page_icon="☁️", layou
 GOOGLE_SHEET_NAME = "database sipeka master"
 GOOGLE_DRIVE_FOLDER_ID = "1ggi3tUgFjefe3kzzbZFEy54b3OzUBtr6"
 
-# 🔑 KUNCI ENKRIPSI GOOGLE CLOUD (RE-FORMATTED BIAR ANTI-EROR)
+# 🔑 KUNCI ENKRIPSI GOOGLE CLOUD (FORMAT KUTIP TIGA - ANTI EROR SIGNATURE)
 GOOGLE_CREDENTIALS = {
   "type": "service_account",
   "project_id": "fresh-sensor-496705-d9",
   "private_key_id": "6e51a3b19c1e9eb8804037a90d035a3f13128774",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDjDEb5MB6OWrEw\n2IaRVjQG83Og9EmY5NICFLjGdUxzDuAG70Nx9VCyV+0ky6iptKUyNC38N1BfguNB\n+M68uQzUdCz3CuWKemXuEJQKlMqMy8YmRo2likJz4CpG3I1m1ZnbeAjWAp+YL1oP\nxE9QKGcMw7yokG9gdb8uOT15dYHvjOVd/Y6oAEwYOtxmp4KH0NoJVpZes3qsITcN\noSVjTfmDihSuj7262PM/rhLS+age7uKga4z142vlqpl65B72XXzbbamuL6o48oKc\nvXG2jCA5Uiqzqaglxv7++Iq2PFKp2gdHyj2JsfPk1K7ZupG8X6lC7VVIjEEAEV3f\nUR/PSdFHAgMBAAECggEAP5Z4KCDwZdkDiBUUNw8H+ixjpV/VXuMy589K4pYGZ7Dy\nUC7hWkCkrZYPff8lyQWlQHa5rEoHkgBTym225McEz1mMIFImcE6QTojJFV+PjLgj\nUiPvVr3ul4pf/MGXPoYzFXK8MsfAT7xvQjwuJFp0ZfBJ3YG6F69ScE0qqOIelmp9\n1Ghrj8TsvsDZ3WVdg8chiKxCmrWGBzzz+FNMlD9qQzd9AhDh0zi/uIA6AHqBWUt6\nCSHCyqfy/xxYY66fTn2UmHxi1hRYGgIKL0Z6a/pFGRZg5n/czoFzA4KLmhsK8zpr\nu462gOJND5sc0NYtnb3P2e8Y7D1/febp2sXAnPec4QKBgQD4zYW6vgF6jxhX7lfi\nqVOSGLxMlJq7TSxcvhL7riEVCxL01FirA2uBWDf76JORCYFN+jUs4dyt0Ny0JNVj\nvYdd1u05vC4CVwX+BIp46Kl0qhaLjnfBt0owT5rWw+ZeotE+NzektyXqXcJz0LE4\nKbayhWPOXBBFz7HbY6i+YfHjZwKBgQDpnaboeh9WQ9By0qjyG9XoASW3xeyw4fyg\nKNxx3VgmjVknruVHgaijmkpSdjVxjqJxtYzxFb0QAhwdFYWrSQ8Ye3QYoJXRYq23\nbALUSIJslNcS9diqoFw/H6Zao3JNAktAv7LZi2yfBMHKD5zlACKc6GmjVIbreLMH\n6p9xGeDXIQKBgQCqXLhEHVSP4imuFALTrlQOBqfw3BRzSi2lN3VyJlJ6wUFyqXAp\ncUcMoyZ6dE+PEW4bwcble6aK0ig9pbcD+8QUClYXoXXznjj5LYzPq6hUvR6A4sW3\nvFStbeS9SBiXFm+mZVLRk6L/rsG2YeDnbxCtfs7Pf5SY6NWFPuFNs21Y4wKBgQCT\nWCron/XZ2+XCNhn2shXFQcv/T+eMXMyQW5VGf9vUXPxpagcUhbPOlEbiIcpteA/+\n9goSGKrpSNtggK2RLgBGab78tXQo3zs/3/Ec4SrZvzqzq7nfTEtCSP0MV+CEr7i0\n+vOcADMfTMnJXvWO/fnWy0Otj2eVZshMau/rTu4f4QKBgQCvSGGFR9Ll2sAgnBIw\nxv18wj+8d1PWUnMDepENVaA1i1hmdkBZPMTgOSE+AWjKdJg31t4/GszDhFvP40Av\nCltZ8Gd/mPz2mUreecN463RIVMRkEoTo0QusvoZyq6lSym6fHA7h37F7JILatWU+\nwso76XPmdXd1bZrby+DgwFRl+A==\n-----END PRIVATE KEY-----\n",
+  "private_key": """-----BEGIN PRIVATE KEY-----
+MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDjDEb5MB6OWrEw
+2IaRVjQG83Og9EmY5NICFLjGdUxzDuAG70Nx9VCyV+0ky6iptKUyNC38N1BfguNB
++M68uQzUdCz3CuWKemXuEJQKlMqMy8YmRo2likJz4CpG3I1m1ZnbeAjWAp+YL1oP
+xE9QKGcMw7yokG9gdb8uOT15dYHvjOVd/Y6oAEwYOtxmp4KH0NoJVpZes3qsITcN
+oSVjTfmDihSuj7262PM/rhLS+age7uKga4z142vlqpl65B72XXzbbamuL6o48oKc
+vXG2jCA5Uiqzqaglxv7++Iq2PFKp2gdHyj2JsfPk1K7ZupG8X6lC7VVIjEEAEV3f
+UR/PSdFHAgMBAAECggEAP5Z4KCDwZdkDiBUUNw8H+ixjpV/VXuMy589K4pYGZ7Dy
+UC7hWkCkrZYPff8lyQWlQHa5rEoHkgBTym225McEz1mMIFImcE6QTojJFV+PjLgj
+UiPvVr3ul4pf/MGXPoYzFXK8MsfAT7xvQjwuJFp0ZfBJ3YG6F69ScE0qqOIelmp9
+1Ghrj8TsvsDZ3WVdg8chiKxCmrWGBzzz+FNMlD9qQzd9AhDh0zi/uIA6AHqBWUt6
+CSHCyqfy/xxYY66fTn2UmHxi1hRYGgIKL0Z6a/pFGRZg5n/czoFzA4KLmhsK8zpr
+u462gOJND5sc0NYtnb3P2e8Y7D1/febp2sXAnPec4QKBgQD4zYW6vgF6jxhX7lfi
+qVOSGLxMlJq7TSxcvhL7riEVCxL01FirA2uBWDf76JORCYFN+jUs4dyt0Ny0JNVj
+vYdd1u05vC4CVwX+BIp46Kl0qhaLjnfBt0owT5rWw+ZeotE+NzektyXqXcJz0LE4
+KbayhWPOXBBFz7HbY6i+YfHjZwKBgQDpnaboeh9WQ9By0qjyG9XoASW3xeyw4fyg
+KNxx3VgmjVknruVHgaijmkpSdjVxjqJxtYzxFb0QAhwdFYWrSQ8Ye3QYoJXRYq23
+bALUSIJslNcS9diqoFw/H6Zao3JNAktAv7LZi2yfBMHKD5zlACKc6GmjVIbreLMH
+6p9xGeDXIQKBgQCqXLhEHVSP4imuFALTrlQOBqfw3BRzSi2lN3VyJlJ6wUFyqXAp
+cUcMoyZ6dE+PEW4bwcble6aK0ig9pbcD+8QUClYXoXXznjj5LYzPq6hUvR6A4sW3
+vFStbeS9SBiXFm+mZVLRk6L/rsG2YeDnbxCtfs7Pf5SY6NWFPuFNs21Y4wKBgQCT
+WCron/XZ2+XCNhn2shXFQcv/T+eMXMyQW5VGf9vUXPxpagcUhbPOlEbiIcpteA/+
+9goSGKrpSNtggK2RLgBGab78tXQo3zs/3/Ec4SrZvzqzq7nfTEtCSP0MV+CEr7i0
++vOcADMfTMnJXvWO/fnWy0Otj2eVZshMau/rTu4f4QKBgQCvSGGFR9Ll2sAgnBIw
+xv18wj+8d1PWUnMDepENVaA1i1hmdkBZPMTgOSE+AWjKdJg31t4/GszDhFvP40Av
+CltZ8Gd/mPz2mUreecN463RIVMRkEoTo0QusvoZyq6lSym6fHA7h37F7JILatWU+
+wso76XPmdXd1bZrby+DgwFRl+A==
+-----END PRIVATE KEY-----""",
   "client_email": "kurir-sipeka@fresh-sensor-496705-d9.iam.gserviceaccount.com",
   "client_id": "110594938055714777460",
   "auth_uri": "https://accounts.google.com/o/oauth2/auth",
@@ -43,8 +70,6 @@ SCOPES = [
     'https://www.googleapis.com/auth/drive'
 ]
 
-# Modifikasi tipis di sini agar pemrosesan karakter \n dibaca dengan benar oleh sistem Google
-GOOGLE_CREDENTIALS["private_key"] = GOOGLE_CREDENTIALS["private_key"].replace("\\n", "\n")
 creds = Credentials.from_service_account_info(GOOGLE_CREDENTIALS, scopes=SCOPES)
 
 def get_google_sheet():

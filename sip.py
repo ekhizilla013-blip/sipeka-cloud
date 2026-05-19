@@ -12,8 +12,6 @@ except ImportError:
 import streamlit as st
 import pandas as pd
 import time
-import base64
-import json
 from io import BytesIO
 from google.oauth2.service_account import Credentials
 import googleapiclient.discovery
@@ -25,13 +23,22 @@ st.set_page_config(page_title="SIPEKA CLOUD ULTIMATE", page_icon="☁️", layou
 GOOGLE_SHEET_NAME = "database sipeka master"
 GOOGLE_DRIVE_FOLDER_ID = "1ggi3tUgFjefe3kzzbZFEy54b3OzUBtr6"
 
-# 🔑 KUNCI JALUR BASE64 (ANTI ACAL-ACAK FORMAT)
-ENCODED_KEY = "eyJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIsICJwcm9qZWN0X2lkIjogImZyZXNoLXNlbnNvci00OTY3MDUtZDkiLCAicHJpdmF0ZV9rZXlfaWQiOiAiNmU1MWEzYjE5YzFlOWViODgwNDAzN2E5MGQwMzVhM2YxMzEyODc3NCIsICJwcml2YXRlX2tleSI6ICItLS0tLUJFR0lOIFBSSVZBVEUgS0VZLS0tLS1cbk1JSUV2d0lCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktsd2dnU2xBZ0VBQW9JQkFRRGpERWI1TUI2T1dyRXdcbjJJYVJWallHODNPZzlFbVk1TklDRkxqR2RVeHpEdUFHNzBNeDlWQ3lWKzBreTZpcHRLVXlOQzM4TjFCZmd1TkJcbisstructuralY3pVZEN6Q3VXS2VtWHVFSlFLbE1xTXk4WW1SbzJsaWtKejRD crappyRzMxbTFabmJlQWpXQXArWUwxb1BceEVpUUtNY013N3lva0c5Z2RiOHVPVDE1ZFlIdmpPVmQvWTZvQUV3WU90eG1wNEtIME5vSlZwWmVzM3FzSVRjTlxub1NWalRmbURpaFN1ajcyNjJQTS9yaExTK2FnZTd1S2dhNHoxNDJ2bHFwbDY1QjcyWFh6YmJhbXVMNm80OG9LY1xudlhHMmpDQT crappyVVWlxenlhZ2x4djcrK0lxMlBGS3AyZGRIeWoySnNmUGsxSzd6dXBHOFg2bEM3VlZJakVBRVYzZlx1UlIvUFNkRkhBZ01CQUFFQ2dnRUFPNVo0S0NEd1pka0RpQlVVTnc4SCtpeGpwVi9WWHVNeTU4SzRwWUdaN0R5XG5VQzdoVmtDa3JaWVBmZjhseFFXbFFIYTVyRW9Ia2dCVHltMjI1TWNFejFtTUlGSW1jRTZRVG9KSkZWK1BqTGdqXG5VaVB2VnIzdWw0cGYvTUdYUG9ZekZYSzhNc2ZBVDd4dlFqd3VKUHAwWmZCSjNZRzZGNjlTY0UwcXFPTWVsbXA5XG4xR2hyajhUc3ZzRFozV1ZkZzhjaGlLeENtcldHQnp6eitGTWxEOXFRemQ5QURoMHomL3VJQTZBSHFCV1V0NjZcbkNTSEN5cWZ5L3h4WVkyNmZUbjJVbUh4aTFoUllHZ0lLTDBaNmEvcGZHUlpnNW4vY3pvRnpBNEtMbWhzSzh6cHJcbnU0NjJnT0pORDVzYzBOWXRuYjNQMmU4WTdEMS9mZWJwMnNYQW5QZWM0UUtCZ1FENGpZVzZ2Z0Y2anhYN2xmaVxucVZPU0dMeE1sSnE3VFN4Y3ZoTDdyaUVWQ3hMMDFGaXJBMnVCV0RmNzZKT1JDWS9OK2pVczRkeXQwTnkwek5WalxudllkZDF1MDV2QzRDVndYK0JJcDY2S2wwcWhhTGpuZkJ0MG93VDVyVytaZW90RStOemVrdHlYcVhjWnowTEU0XG5LYmF5aFdQT1hCQkZ6N0hiWTZpK1lmSGpad0tCZ1FEcG5hYm9laDlXUTlCeTBsanlHOVhvQVNXM3hleXc0ZnlnXG5LTnh4M1ZnbUpWa25ydVZIYWlqbWtwU2RqVnhqcUp4dFl6eEZiMFFBaHdkRllXclNROEhlM1FZb0pYUnlxMjNcbmJBTFVTSUpzbE5jUzlkaXFvRncvSDZaYW8zSk5Ba3RBdjdMWmkyeWZCTUhLRDV6bEFDY2M2R21qVklidmVMTUhcbjZwOXhHZURYSVFLQmdRQ3FYTGhFRFZVUDRpbXVGQUxUcmxRT0JxZnczQlJ6U2kybE4zVnlKbEo2d0ZVeVFYQXBcbmNVY01veVp2ZEQrUEVXNGJ3Y2JsZTZhSzBpZzlwYmNELzhRVUNsWVhvWFh6bmpqNUxZelBxNmhVdlI2QTRzVzNcdmZTdGJlUzlTQmlYRm0rbVpWTFJreDZML3JzRzJZZURuYnhDdGZzN1BmNVNZNk5XRlB1Rk5zMjFZNHdLQmdRQ1Rcbldjcm9uL1haMitYQ05objJzaFhGUWN2L1QrZU1YTXlRVzVWR2Y5dlVYUHhwYWdjVWhoYlBPTEViaUljcHRlQS8rXG45Z29TR0tycFNOdGdnSzJSTGdCR2FiNzh0WFFvM3pzLzMvRWM0U3JadnpxenU3bmZURXRDUzA1ViswRWVyN2kwXG4rdk9jQURNZlRNbkpYdlZPL2ZueXcwT3RqMmVWWnNoTWF1L3JUdTRmNFFLQmdRQ3ZTR0dGUjlMbDJzQWduQklXXG54djE4d2orOGQxUFdXbk1EZXBFTlZhQTFpMWhpZGtaQlBNVGdPU0UrQVdqS2RKZzMxdDQvR3N6RGhGdlA0MEF2XG5DbHBaOEdkL21QejJtVXJlZWNONjYzUklWTVJna0VvVG9RRXVzdm96cTZsU3ltNmZIQTdoM0Y3SklMYXRXVStcbndzbzc2WFBtZFhkMWJacmJ5K0Rnd0ZSbCtBPT1cbi0tLS0tRU5EIFBSSVZBVEUgS0VaLS0tLS1cbiIsICJjbGllbnRfZW1haWwiOiAia3VyaXItc2lwZWthQGZyZXNoLXNlbnNvci00OTY3MDUtZDkuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20iLCAiY2xpZW50X2lkIjogIjExMDU5NDkzODA1NTcxNDc3NzQ2MCIsICJhdXRoX3VyaSI6ICJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20vby9vYXV0aDIvYXV0aCIsICJ0b2tlbl91cmkiOiAiaHR0cHM6Ly9vYXV0aDIuZ29vZ2xlYXBpcy5jb20vdG9rZW4iLCAiYXV0aF9wcm92aWRlcl94NTA5X2NlcnRfdXJsIjogImh0dHBzOi8vd3d3Lmdvb2dsZWFwaXMuY29tL29hdXRoMi92MS9jZXJ0cyIsICJjbGllbnRfeDUwOV9jZXJ0X3VybCI6ICJodHRwczovL3d3dy5nb29nbGVhcGlzLmNvbS9vYXV0aDIvdjEvY2VydHMvY3VyaXItc2lwZWthJTQ0ZnJlc2gtc2Vuc29yLTQ5NjcwNS1kOS5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsICJ1bml2ZXJzZV9kb21haW4iOiAiZ29vZ2xlYXBpcy5jb20ifQ=="
-
+# 🔥 SISTEM BACA RAHASIA AMAN & BERSIH
 try:
-    # Decode Base64 balik ke teks JSON murni aslinya
-    decoded_bytes = base64.b64decode(ENCODED_KEY)
-    credentials_dict = json.loads(decoded_bytes.decode('utf-8'))
+    # Ambil seluruh variabel dari Streamlit Secrets
+    credentials_dict = {
+        "type": st.secrets["type"],
+        "project_id": st.secrets["project_id"],
+        "private_key_id": st.secrets["private_key_id"],
+        "private_key": st.secrets["private_key"].replace("\\n", "\n"), # Merapikan enter kunci
+        "client_email": st.secrets["client_email"],
+        "client_id": st.secrets["client_id"],
+        "auth_uri": st.secrets["auth_uri"],
+        "token_uri": st.secrets["token_uri"],
+        "auth_provider_x509_cert_url": st.secrets["auth_provider_x509_cert_url"],
+        "client_x509_cert_url": st.secrets["client_x509_cert_url"],
+        "universe_domain": st.secrets["universe_domain"]
+    }
     
     SCOPES = [
         'https://www.googleapis.com/auth/spreadsheets',
@@ -39,7 +46,7 @@ try:
     ]
     creds = Credentials.from_service_account_info(credentials_dict, scopes=SCOPES)
 except Exception as e:
-    st.error(f"Sistem gagal membaca dekripsi rahasia: {e}")
+    st.error(f"Sistem gagal membaca konfigurasi rahasia: {e}")
 
 def get_google_sheet():
     client = gspread.authorize(creds)
